@@ -1,0 +1,23 @@
+# Save this file as  .github/workflows/deploy.yml  in your repository.
+# It auto-deploys to Streamlit Cloud on every push to main.
+# (Streamlit Cloud also auto-deploys without this file — the workflow
+#  is only needed for self-hosted runners or other CI steps.)
+
+name: Deploy Streamlit App
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -r requirements.txt
+      - run: python -c "import app"   # import-check (no Streamlit server needed)
