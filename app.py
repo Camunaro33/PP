@@ -380,7 +380,7 @@ def compute(sn, Cf_kN, Mfx_kNm, Mfy_kNm, L_mm,
     return dict(
         sn=sn,Cf=Cf,Mfx=Mfx,Mfy=Mfy,L=L_mm,Kx=Kx,Ky=Ky,k=k,om2=om2,E=E,G=G,phi=phi,
         A=A,d=d,bf=bf,tf=tf,tw=tw,h=h,
-        Zx=Zx,Sx=Sx,rx=rx,Zy=Zy,Sy=Sy,ry=ry,Iy=Iy,J=J,Cw=Cw,Lu=Lu,Fy=Fy,
+        Zx=Zx,Sx=Sx,rx=rx,Zy=Zy,Sy=Sy,ry=ry,Ix=s["Ix"],Iy=Iy,J=J,Cw=Cw,Lu=Lu,Fy=Fy,
         pCy=pCy,b2tf=b2tf,htw=htw,fl=fl,wb=wb,cf=cf,cw=cw,cls=cls,
         Mrx_s=Mrx_s,Mry_s=Mry_s,Cex=Cex,om1=om1,U1s=U1s,
         Ta=Ta,Tb=Tb,Tc=Tc,r2=r2,
@@ -506,6 +506,150 @@ def section_fig(rv):
         yaxis=dict(visible=False),
         height=460,
         margin=dict(l=20,r=20,t=20,b=20),
+        paper_bgcolor="white", plot_bgcolor="white",
+        showlegend=False,
+    )
+    return fig
+
+# ═══════════════════════════════════════════════════════════════════════════════
+#  PLOTLY: MEMBER DIAGRAM  (column with Cf, Mfx, Mfy arrows)
+# ═══════════════════════════════════════════════════════════════════════════════
+def member_fig(rv):
+    """
+    3-D-style sketch of a beam-column showing:
+      • The member as a rectangle (elevation view)
+      • Cf  – axial compression arrows top & bottom  (red)
+      • Mfx – strong-axis moment curved arrows left & right  (blue)
+      • Mfy – weak-axis moment curved arrows front & back  (orange)
+    All drawn as a 2-D SVG-style Plotly figure.
+    """
+    Cf_kN  = rv["Cf"]  / 1e3
+    Mfx    = rv["Mfx"] / 1e6
+    Mfy    = rv["Mfy"] / 1e6
+    L      = rv["L"]   / 1000   # in metres for label
+
+    # ── layout constants (normalised) ───────────────────────────────────────
+    W   = 1.0        # column half-width in drawing units
+    H   = 5.0        # column height
+    CW  = "#1565C0"  # column fill
+    CF_C = "#B71C1C" # Cf colour  (red)
+    MX_C = "#1565C0" # Mfx colour (blue)
+    MY_C = "#C45000" # Mfy colour (orange)
+
+    shapes = [
+        # column body
+        dict(type="rect", x0=-W, y0=0, x1=W, y1=H,
+             fillcolor="rgba(46,109,164,0.30)",
+             line=dict(color=CW, width=2)),
+    ]
+
+    annotations = []
+
+    # ── Cf arrows (top and bottom, pointing inward) ──────────────────────────
+    ext = H * 0.28   # arrow length outside column
+    if Cf_kN > 0:
+        # bottom arrow pointing UP into column
+        annotations.append(dict(
+            ax=0, ay=-(ext), axref="x", ayref="y",
+            x=0, y=0, xref="x", yref="y",
+            arrowhead=2, arrowwidth=3, arrowcolor=CF_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=0, y=-(ext*0.5),
+            text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
+            xanchor="center", yanchor="top",
+            showarrow=False, font=dict(size=11, color=CF_C)))
+        # top arrow pointing DOWN into column
+        annotations.append(dict(
+            ax=0, ay=H+ext, axref="x", ayref="y",
+            x=0, y=H, xref="x", yref="y",
+            arrowhead=2, arrowwidth=3, arrowcolor=CF_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=0, y=H+ext*0.6,
+            text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
+            xanchor="center", yanchor="bottom",
+            showarrow=False, font=dict(size=11, color=CF_C)))
+
+    # ── Mfx arrows (strong-axis — curved moment left and right) ─────────────
+    if Mfx != 0:
+        # left side: arc from bottom-left to top-left
+        annotations.append(dict(
+            ax=-(W+1.5), ay=H*0.25, axref="x", ayref="y",
+            x=-(W+0.3),  y=H*0.75,  xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=-(W+2.0), y=H*0.5,
+            text=f"<b>Mfx<br>{Mfx:.0f} kN·m</b>",
+            xanchor="right", yanchor="middle",
+            showarrow=False, font=dict(size=11, color=MX_C)))
+        # right side: arc from top-right to bottom-right
+        annotations.append(dict(
+            ax=(W+1.5), ay=H*0.75, axref="x", ayref="y",
+            x=(W+0.3),  y=H*0.25,  xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=(W+2.0), y=H*0.5,
+            text=f"<b>Mfx<br>{Mfx:.0f} kN·m</b>",
+            xanchor="left", yanchor="middle",
+            showarrow=False, font=dict(size=11, color=MX_C)))
+
+    # ── Mfy arrows (weak-axis — out-of-plane, shown as top/bottom arcs) ──────
+    if Mfy != 0:
+        # top arc (into page / weak axis)
+        annotations.append(dict(
+            ax=-(W*0.6), ay=H*0.82, axref="x", ayref="y",
+            x= (W*0.6),  y=H*0.95,  xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2.5, arrowcolor=MY_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=W*2.5, y=H*0.92,
+            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
+            xanchor="left", yanchor="middle",
+            showarrow=False, font=dict(size=10, color=MY_C)))
+        # bottom arc
+        annotations.append(dict(
+            ax=(W*0.6), ay=H*0.18, axref="x", ayref="y",
+            x=-(W*0.6), y=H*0.05,  xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2.5, arrowcolor=MY_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=W*2.5, y=H*0.08,
+            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
+            xanchor="left", yanchor="middle",
+            showarrow=False, font=dict(size=10, color=MY_C)))
+
+    # ── length label ─────────────────────────────────────────────────────────
+    annotations.append(dict(
+        ax=W+0.5, ay=0,   axref="x", ayref="y",
+        x= W+0.5, y=H,    xref="x",  yref="y",
+        arrowhead=2, arrowside="end+start", arrowcolor="#888", arrowwidth=1,
+        showarrow=True, text=""))
+    annotations.append(dict(
+        x=W+1.1, y=H/2,
+        text=f"L = {L:.2f} m<br>Kx={rv['Kx']}  Ky={rv['Ky']}",
+        xanchor="left", yanchor="middle", textangle=90,
+        showarrow=False, font=dict(size=9, color="#666")))
+
+    # ── axis labels ──────────────────────────────────────────────────────────
+    annotations.append(dict(
+        x=0, y=H/2,
+        text=f"<b>{rv['sn']}</b><br>L = {L:.2f} m",
+        xanchor="center", yanchor="middle",
+        showarrow=False, font=dict(size=10, color="#fff")))
+
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=[-5, 5], y=[-H*0.4, H*1.45],
+        mode="markers", marker=dict(opacity=0)))
+    fig.update_layout(
+        shapes=shapes, annotations=annotations,
+        xaxis=dict(visible=False),
+        yaxis=dict(visible=False, scaleanchor="x", scaleratio=1),
+        height=460,
+        margin=dict(l=10, r=10, t=10, b=10),
         paper_bgcolor="white", plot_bgcolor="white",
         showlegend=False,
     )
@@ -672,11 +816,25 @@ with st.sidebar:
         unsafe_allow_html=True)
 
     st.markdown("### Factored loads")
-    max_Cf  = max(100, int(0.9*s["A"]*s["Fy"]/1e3/50)*50)
-    max_Mr  = max(50,  int(0.9*s["Zx"]*s["Fy"]/1e6/10)*10)
-    Cf_kN   = st.slider("Cf  (kN)",   50.0, float(max_Cf), min(2000.0,max_Cf*.45), 25.0)
-    Mfx_kNm = st.slider("Mfx (kN·m)", 0.0, float(max_Mr), min(300.0, max_Mr*.45), 10.0)
-    Mfy_kNm = st.slider("Mfy (kN·m)", 0.0, float(max(10,max_Mr//5)), 0.0, 5.0)
+    max_Cf   = max(100, int(0.9*s["A"]*s["Fy"]/1e3/50)*50)
+    max_Mrx  = max(50,  int(0.9*s["Zx"]*s["Fy"]/1e6/10)*10)
+    max_Mry  = max(10,  int(0.9*s["Zy"]*s["Fy"]/1e6/5)*5)
+    Cf_kN   = st.slider("Cf  (kN)", 50.0, float(max_Cf),
+                         min(2000.0, max_Cf*.45), 25.0,
+                         help="Factored axial compression force")
+    Mfx_kNm = st.slider("Mfx (kN·m)", 0.0, float(max_Mrx),
+                         min(300.0, max_Mrx*.45), 10.0,
+                         help="Factored strong-axis bending moment")
+    Mfy_kNm = st.slider("Mfy (kN·m)", 0.0, float(max_Mry),
+                         0.0, max(1.0, float(max_Mry)//50),
+                         help="Factored weak-axis bending moment (biaxial loading)")
+    if Mfy_kNm > 0:
+        st.markdown(
+            f'<div class="ibox">⚡ <b>Biaxial bending active</b><br>'
+            f'Mfx = {Mfx_kNm:.1f} kN·m (strong)  +  '
+            f'Mfy = {Mfy_kNm:.1f} kN·m (weak)<br>'
+            f'Max Mry = φ·Zy·Fy = {max_Mry:.0f} kN·m</div>',
+            unsafe_allow_html=True)
 
     st.markdown("### Geometry")
     L_mm = st.slider("L  (mm)", 1000.0, 15000.0, 3700.0, 100.0)
@@ -760,10 +918,13 @@ t0,t1,t2,t3,t4,t5 = st.tabs([
 # ── Tab 0: Section ──────────────────────────────────────────────────────────
 with t0:
     st.markdown("## Section Properties  (Table T1)")
-    ca,cb = st.columns([1,1.5])
+    ca, cm, cb = st.columns([1, 0.85, 1.5])
     with ca:
-        st.markdown("### Cross-section — drawn to real scale")
+        st.markdown("### Cross-section")
         st.plotly_chart(section_fig(rv), use_container_width=True, key="sec0")
+    with cm:
+        st.markdown("### Member loading")
+        st.plotly_chart(member_fig(rv), use_container_width=True, key="mem0")
     with cb:
         st.markdown("### Dimensions & properties from HSC T1")
         rows=[
@@ -806,8 +967,9 @@ with t1:
     cls_col=[GR,GR,GO,RD][rv["cls"]-1]
     st.markdown("## Step 1 — Classification  [Tables 4.1 / 4.2]")
     st.markdown('<div class="ibox">The section class controls whether Mp = φ·Fy·Zx (Class 1&2) or My = φ·Fy·Sx (Class 3) can be reached before local buckling. The web limit is relaxed when Cf is small relative to φCy.</div>',unsafe_allow_html=True)
-    ca,cb=st.columns([1,1.4])
+    ca,cm,cb=st.columns([1,0.85,1.4])
     with ca: st.plotly_chart(section_fig(rv),use_container_width=True,key="sec1")
+    with cm: st.plotly_chart(member_fig(rv),use_container_width=True,key="mem1")
     with cb: st.plotly_chart(slender_fig(rv),use_container_width=True,key="slen1")
     st.markdown(f"""<div class="fbox">
 <b>FLANGE</b>  b/(2·tf)  ≤  170/√Fy  (Class 2 limit)<br>
