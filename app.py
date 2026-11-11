@@ -516,140 +516,215 @@ def section_fig(rv):
 # ═══════════════════════════════════════════════════════════════════════════════
 def member_fig(rv):
     """
-    3-D-style sketch of a beam-column showing:
-      • The member as a rectangle (elevation view)
-      • Cf  – axial compression arrows top & bottom  (red)
-      • Mfx – strong-axis moment curved arrows left & right  (blue)
-      • Mfy – weak-axis moment curved arrows front & back  (orange)
-    All drawn as a 2-D SVG-style Plotly figure.
+    Clean engineering diagram of a beam-column.
+    - Column drawn with REAL proportions (bf / L ratio preserved)
+    - Cf  : solid red arrows at top AND bottom, pointing inward
+    - Mfx : proper moment arc symbols AT EACH END (top-end and bottom-end)
+            sign: positive k (double curvature) → arcs oppose each other
+                  negative k (single curvature) → arcs same direction
+    - Mfy : smaller moment arcs for weak-axis biaxial bending
+    Uses pure SVG via Plotly shapes + annotations for clean rendering.
     """
-    Cf_kN  = rv["Cf"]  / 1e3
-    Mfx    = rv["Mfx"] / 1e6
-    Mfy    = rv["Mfy"] / 1e6
-    L      = rv["L"]   / 1000   # in metres for label
+    import math as _math
 
-    # ── layout constants (normalised) ───────────────────────────────────────
-    W   = 1.0        # column half-width in drawing units
-    H   = 5.0        # column height
-    CW  = "#1565C0"  # column fill
-    CF_C = "#B71C1C" # Cf colour  (red)
-    MX_C = "#1565C0" # Mfx colour (blue)
-    MY_C = "#C45000" # Mfy colour (orange)
+    Cf_kN = rv["Cf"]  / 1e3
+    Mfx   = rv["Mfx"] / 1e6
+    Mfy   = rv["Mfy"] / 1e6
+    L_m   = rv["L"]   / 1000
+    k     = rv["k"]           # +1 = double curvature, −1 = single
+    d_mm  = rv["d"]           # section depth   [mm]
+    bf_mm = rv["bf"]          # flange width    [mm]
 
-    shapes = [
-        # column body
-        dict(type="rect", x0=-W, y0=0, x1=W, y1=H,
-             fillcolor="rgba(46,109,164,0.30)",
-             line=dict(color=CW, width=2)),
+    # ── drawing space ────────────────────────────────────────────────────────
+    # Map real section to drawing: preserve bf/L aspect ratio
+    # column half-width in drawing units = 1.0  (always)
+    # column height proportional to real L/bf
+    W    = 1.0                        # column half-width (fixed)
+    ratio = rv["L"] / bf_mm           # L/bf  (typically 10–50)
+    H    = W * 2 * min(ratio, 20)     # cap at 20× for very slender columns
+    H    = max(H, 4.0)                # minimum height for readability
+
+    CF_C = "#B71C1C"   # red  – axial
+    MX_C = "#1565C0"   # blue – strong-axis moment
+    MY_C = "#C45000"   # orange – weak-axis moment
+
+    shapes, annotations = [], []
+
+    # ── 1. Column body ───────────────────────────────────────────────────────
+    shapes.append(dict(
+        type="rect", x0=-W, y0=0, x1=W, y1=H,
+        fillcolor="rgba(46,109,164,0.22)",
+        line=dict(color="#1A3A5C", width=2.0)))
+
+    # ── 2. Cf arrows (pointing INWARD at both ends) ──────────────────────────
+    ext_cf = H * 0.22
+    if Cf_kN > 0:
+        # bottom: tail below, head at y=0
+        annotations += [
+            dict(ax=0, ay=-ext_cf, axref="x", ayref="y",
+                 x=0,  y=0,        xref="x",  yref="y",
+                 arrowhead=2, arrowwidth=3.5, arrowcolor=CF_C,
+                 showarrow=True, text=""),
+            dict(x=0, y=-ext_cf*0.45,
+                 text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
+                 xanchor="center", yanchor="top",
+                 showarrow=False, font=dict(size=12, color=CF_C)),
+            # top: tail above, head at y=H
+            dict(ax=0, ay=H+ext_cf, axref="x", ayref="y",
+                 x=0,  y=H,          xref="x",  yref="y",
+                 arrowhead=2, arrowwidth=3.5, arrowcolor=CF_C,
+                 showarrow=True, text=""),
+            dict(x=0, y=H+ext_cf*0.55,
+                 text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
+                 xanchor="center", yanchor="bottom",
+                 showarrow=False, font=dict(size=12, color=CF_C)),
+        ]
+
+    # ── 3. Mfx moment arcs AT THE ENDS  ─────────────────────────────────────
+    # A moment arc is drawn as a curved Plotly path (SVG arc).
+    # At the BOTTOM end (y=0):  arc on LEFT side
+    # At the TOP end   (y=H):  arc on RIGHT side
+    # Sign convention:
+    #   k > 0  (double curvature) → arcs point in OPPOSITE sense (standard positive)
+    #   k < 0  (single curvature) → arcs point in SAME sense
+    if Mfx != 0:
+        R   = W * 1.10    # arc radius
+        gx  = W * 0.30    # gap from column face to arc centre
+        cx_L = -(W + gx + R)   # arc centre x, left side
+        cx_R =  (W + gx + R)   # arc centre x, right side
+
+        # ── BOTTOM end arc (left side) ───────────────────────────────────────
+        # Arc from (cx_L, R) down to (cx_L+R, 0) → counter-clockwise = positive Mfx
+        # For k>0 (double curv): bottom M is positive (CCW on left face)
+        # We draw a 3/4 circle from 90° to 0° (CCW)
+        bot_start_x = cx_L
+        bot_start_y = R
+        bot_end_x   = cx_L + R
+        bot_end_y   = 0.0
+        shapes.append(dict(
+            type="path",
+            path=f"M {cx_L:.3f},{R:.3f} A {R:.3f},{R:.3f} 0 0,1 {cx_L+R:.3f},0",
+            line=dict(color=MX_C, width=3.0),
+            fillcolor="rgba(0,0,0,0)"))
+        # arrowhead at end of arc (pointing right → downward tangent)
+        annotations.append(dict(
+            ax=cx_L+R-0.01, ay=0.12, axref="x", ayref="y",
+            x= cx_L+R+0.01, y=-0.02, xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=cx_L - R*0.3, y=-R*0.1,
+            text=f"<b>Mfx = {Mfx:.0f} kN·m</b>",
+            xanchor="right", yanchor="top",
+            showarrow=False, font=dict(size=11, color=MX_C)))
+
+        # ── TOP end arc (right side) ─────────────────────────────────────────
+        # For double curvature (k>0): top M is also positive but mirrored
+        # Arc from (cx_R, H-R) up to (cx_R-R, H) → CCW
+        top_flip = 1 if k >= 0 else -1   # flip for single curvature
+        shapes.append(dict(
+            type="path",
+            path=f"M {cx_R:.3f},{H-R:.3f} A {R:.3f},{R:.3f} 0 0,0 {cx_R-R:.3f},{H:.3f}",
+            line=dict(color=MX_C, width=3.0),
+            fillcolor="rgba(0,0,0,0)"))
+        annotations.append(dict(
+            ax=cx_R-R+0.01, ay=H-0.12, axref="x", ayref="y",
+            x= cx_R-R-0.01, y=H+0.02,  xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=cx_R + R*0.3, y=H+R*0.1,
+            text=f"<b>Mfx = {Mfx:.0f} kN·m</b>",
+            xanchor="left", yanchor="bottom",
+            showarrow=False, font=dict(size=11, color=MX_C)))
+
+    # ── 4. Mfy moment arcs (weak-axis biaxial) ───────────────────────────────
+    if Mfy != 0:
+        Ry  = W * 0.70
+        # bottom end – above the Cf label zone, left of centre
+        shapes.append(dict(
+            type="path",
+            path=f"M {-Ry:.3f},{-ext_cf*0.05:.3f} A {Ry:.3f},{Ry:.3f} 0 0,0 {Ry:.3f},{-ext_cf*0.05:.3f}",
+            line=dict(color=MY_C, width=2.5),
+            fillcolor="rgba(0,0,0,0)"))
+        annotations.append(dict(
+            ax=Ry-0.01, ay=-ext_cf*0.05+0.08, axref="x", ayref="y",
+            x= Ry+0.01, y=-ext_cf*0.05-0.05,  xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2, arrowcolor=MY_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=Ry+0.3, y=-ext_cf*0.05,
+            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
+            xanchor="left", yanchor="middle",
+            showarrow=False, font=dict(size=10, color=MY_C)))
+        # top end
+        shapes.append(dict(
+            type="path",
+            path=f"M {Ry:.3f},{H+ext_cf*0.05:.3f} A {Ry:.3f},{Ry:.3f} 0 0,0 {-Ry:.3f},{H+ext_cf*0.05:.3f}",
+            line=dict(color=MY_C, width=2.5),
+            fillcolor="rgba(0,0,0,0)"))
+        annotations.append(dict(
+            ax=-Ry+0.01, ay=H+ext_cf*0.05-0.08, axref="x", ayref="y",
+            x= -Ry-0.01, y=H+ext_cf*0.05+0.05,  xref="x",  yref="y",
+            arrowhead=2, arrowwidth=2, arrowcolor=MY_C,
+            showarrow=True, text=""))
+        annotations.append(dict(
+            x=Ry+0.3, y=H+ext_cf*0.05,
+            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
+            xanchor="left", yanchor="middle",
+            showarrow=False, font=dict(size=10, color=MY_C)))
+
+    # ── 5. L dimension line (right side) ─────────────────────────────────────
+    xd = W + 0.55
+    annotations += [
+        dict(ax=xd, ay=0, axref="x", ayref="y",
+             x=xd,  y=H,  xref="x",  yref="y",
+             arrowhead=2, arrowside="end+start",
+             arrowcolor="#999", arrowwidth=1.2,
+             showarrow=True, text=""),
+        dict(x=xd+0.25, y=H/2,
+             text=f"L = {L_m:.2f} m",
+             xanchor="left", yanchor="middle", textangle=90,
+             showarrow=False, font=dict(size=9, color="#777")),
     ]
 
-    annotations = []
-
-    # ── Cf arrows (top and bottom, pointing inward) ──────────────────────────
-    ext = H * 0.28   # arrow length outside column
-    if Cf_kN > 0:
-        # bottom arrow pointing UP into column
-        annotations.append(dict(
-            ax=0, ay=-(ext), axref="x", ayref="y",
-            x=0, y=0, xref="x", yref="y",
-            arrowhead=2, arrowwidth=3, arrowcolor=CF_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=0, y=-(ext*0.5),
-            text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
-            xanchor="center", yanchor="top",
-            showarrow=False, font=dict(size=11, color=CF_C)))
-        # top arrow pointing DOWN into column
-        annotations.append(dict(
-            ax=0, ay=H+ext, axref="x", ayref="y",
-            x=0, y=H, xref="x", yref="y",
-            arrowhead=2, arrowwidth=3, arrowcolor=CF_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=0, y=H+ext*0.6,
-            text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
-            xanchor="center", yanchor="bottom",
-            showarrow=False, font=dict(size=11, color=CF_C)))
-
-    # ── Mfx arrows (strong-axis — curved moment left and right) ─────────────
-    if Mfx != 0:
-        # left side: arc from bottom-left to top-left
-        annotations.append(dict(
-            ax=-(W+1.5), ay=H*0.25, axref="x", ayref="y",
-            x=-(W+0.3),  y=H*0.75,  xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=-(W+2.0), y=H*0.5,
-            text=f"<b>Mfx<br>{Mfx:.0f} kN·m</b>",
-            xanchor="right", yanchor="middle",
-            showarrow=False, font=dict(size=11, color=MX_C)))
-        # right side: arc from top-right to bottom-right
-        annotations.append(dict(
-            ax=(W+1.5), ay=H*0.75, axref="x", ayref="y",
-            x=(W+0.3),  y=H*0.25,  xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=(W+2.0), y=H*0.5,
-            text=f"<b>Mfx<br>{Mfx:.0f} kN·m</b>",
-            xanchor="left", yanchor="middle",
-            showarrow=False, font=dict(size=11, color=MX_C)))
-
-    # ── Mfy arrows (weak-axis — out-of-plane, shown as top/bottom arcs) ──────
-    if Mfy != 0:
-        # top arc (into page / weak axis)
-        annotations.append(dict(
-            ax=-(W*0.6), ay=H*0.82, axref="x", ayref="y",
-            x= (W*0.6),  y=H*0.95,  xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2.5, arrowcolor=MY_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=W*2.5, y=H*0.92,
-            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
-            xanchor="left", yanchor="middle",
-            showarrow=False, font=dict(size=10, color=MY_C)))
-        # bottom arc
-        annotations.append(dict(
-            ax=(W*0.6), ay=H*0.18, axref="x", ayref="y",
-            x=-(W*0.6), y=H*0.05,  xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2.5, arrowcolor=MY_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=W*2.5, y=H*0.08,
-            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
-            xanchor="left", yanchor="middle",
-            showarrow=False, font=dict(size=10, color=MY_C)))
-
-    # ── length label ─────────────────────────────────────────────────────────
-    annotations.append(dict(
-        ax=W+0.5, ay=0,   axref="x", ayref="y",
-        x= W+0.5, y=H,    xref="x",  yref="y",
-        arrowhead=2, arrowside="end+start", arrowcolor="#888", arrowwidth=1,
-        showarrow=True, text=""))
-    annotations.append(dict(
-        x=W+1.1, y=H/2,
-        text=f"L = {L:.2f} m<br>Kx={rv['Kx']}  Ky={rv['Ky']}",
-        xanchor="left", yanchor="middle", textangle=90,
-        showarrow=False, font=dict(size=9, color="#666")))
-
-    # ── axis labels ──────────────────────────────────────────────────────────
+    # ── 6. Section label inside column ───────────────────────────────────────
     annotations.append(dict(
         x=0, y=H/2,
-        text=f"<b>{rv['sn']}</b><br>L = {L:.2f} m",
+        text=f"<b>{rv['sn']}</b><br>"
+             f"d={d_mm} mm  bf={bf_mm} mm<br>"
+             f"Kx={rv['Kx']}  Ky={rv['Ky']}",
         xanchor="center", yanchor="middle",
-        showarrow=False, font=dict(size=10, color="#fff")))
+        showarrow=False,
+        font=dict(size=10, color="#1A3A5C"),
+        bgcolor="rgba(255,255,255,0.75)",
+        bordercolor="#1A3A5C", borderwidth=1,
+        borderpad=4))
+
+    # ── 7. Sign convention note ──────────────────────────────────────────────
+    sign_note = "double curvature (+)" if k >= 0 else "single curvature (−)"
+    annotations.append(dict(
+        x=0, y=-ext_cf*1.6,
+        text=f"k = {k:.2f}  →  {sign_note}",
+        xanchor="center", yanchor="top",
+        showarrow=False, font=dict(size=9, color="#888")))
+
+    # ── layout ───────────────────────────────────────────────────────────────
+    pad_x = W * 7.5
+    pad_y_bot = ext_cf * 2.2
+    pad_y_top = ext_cf * 2.2
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=[-5, 5], y=[-H*0.4, H*1.45],
-        mode="markers", marker=dict(opacity=0)))
+        x=[-pad_x, pad_x],
+        y=[-pad_y_bot, H + pad_y_top],
+        mode="markers", marker=dict(opacity=0, size=1)))
     fig.update_layout(
         shapes=shapes, annotations=annotations,
-        xaxis=dict(visible=False),
-        yaxis=dict(visible=False, scaleanchor="x", scaleratio=1),
-        height=460,
-        margin=dict(l=10, r=10, t=10, b=10),
+        xaxis=dict(visible=False, scaleanchor="y", scaleratio=1),
+        yaxis=dict(visible=False),
+        height=520,
+        margin=dict(l=5, r=5, t=10, b=10),
         paper_bgcolor="white", plot_bgcolor="white",
         showlegend=False,
     )
@@ -913,11 +988,17 @@ st.markdown("---")
 #  TABS
 # ═══════════════════════════════════════════════════════════════════════════════
 t0,t1,t2,t3,t4,t5 = st.tabs([
-    "📐 Section & T1","① Classification","② Cross-section","③a No LTB","③b With LTB","📈 Sensitivity"])
+    "📐 Propriétés de la section",
+    "① Classification de la section",
+    "② Vérification de la section",
+    "③ Vérification de la pièce  — sans déversement",
+    "④ Vérification de la pièce  — avec déversement",
+    "📈 Analyse de sensibilité",
+])
 
 # ── Tab 0: Section ──────────────────────────────────────────────────────────
 with t0:
-    st.markdown("## Section Properties  (Table T1)")
+    st.markdown("## Propriétés de la section  (Table T1 — CISC HSC)")
     ca, cm, cb = st.columns([1, 0.85, 1.5])
     with ca:
         st.markdown("### Cross-section")
@@ -965,7 +1046,7 @@ Lu = <b>{rv['Lu']:,} mm</b> (Table T3)   Lb = <b>{rv['L']:.0f} mm</b>
 # ── Tab 1: Classification ───────────────────────────────────────────────────
 with t1:
     cls_col=[GR,GR,GO,RD][rv["cls"]-1]
-    st.markdown("## Step 1 — Classification  [Tables 4.1 / 4.2]")
+    st.markdown("## ① Classification de la section  [CSA S16-24 Tables 4.1 / 4.2]")
     st.markdown('<div class="ibox">The section class controls whether Mp = φ·Fy·Zx (Class 1&2) or My = φ·Fy·Sx (Class 3) can be reached before local buckling. The web limit is relaxed when Cf is small relative to φCy.</div>',unsafe_allow_html=True)
     ca,cm,cb=st.columns([1,0.85,1.4])
     with ca: st.plotly_chart(section_fig(rv),use_container_width=True,key="sec1")
@@ -984,7 +1065,7 @@ with t1:
 
 # ── Tab 2: Cross-section ────────────────────────────────────────────────────
 with t2:
-    st.markdown("## Step 2 — Cross-Section Capacity  [Cl. 13.8.2]")
+    st.markdown("## ② Vérification de la section  [CSA S16-24 Cl. 13.8.2]")
     st.markdown('<div class="ibox">Member treated as infinitely short (squash load). Cr = φCy = φ·A·Fy. Checks section can carry combined loads regardless of length. β = 0.6 (fixed). U1x ≥ 1.0.</div>',unsafe_allow_html=True)
     st.plotly_chart(stacked_bar(
         [rv["Ta"],rv["Tb"],rv["Tc"]],
@@ -1006,7 +1087,7 @@ U1x = {rv['om1']:.4f} / (1 − {rv['Cf']/1e3:.1f}/{rv['Cex']/1e3:.1f}) = <b>{rv[
 
 # ── Tab 3: Step 3a ──────────────────────────────────────────────────────────
 with t3:
-    st.markdown("## Step 3a — Overall Member, NO LTB  [Cl. 13.8.3]")
+    st.markdown("## ③ Vérification de la pièce — sans déversement  [CSA S16-24 Cl. 13.8.3]")
     st.markdown('<div class="ibox">Cr uses <b>strong-axis</b> slenderness λ̄x. Checks in-plane member buckling. U1x ≥ 0. β = 0.6 + 0.4·λ̄y.</div>',unsafe_allow_html=True)
     ca,cb=st.columns([1.5,1])
     with ca: st.plotly_chart(col_curve_fig(rv,"x"),use_container_width=True,key="cc3a")
@@ -1027,7 +1108,7 @@ U1x = <b>{rv['U1a']:.4f}</b>  (≥ 0)<br><br>
 
 # ── Tab 4: Step 3b ──────────────────────────────────────────────────────────
 with t4:
-    st.markdown("## Step 3b — Overall Member, WITH LTB  [Cl. 13.8.4]")
+    st.markdown("## ④ Vérification de la pièce — avec déversement  [CSA S16-24 Cl. 13.8.4]")
     st.markdown(f'<div class="ibox">Cr uses <b>weak-axis</b> λ̄y. {rv["ltb"]}. U1x ≥ 1.0 (prevents double-counting P-δ already in Mrx).</div>',unsafe_allow_html=True)
     ca,cb=st.columns([1.5,1])
     with ca: st.plotly_chart(col_curve_fig(rv,"y"),use_container_width=True,key="cc3b")
@@ -1055,7 +1136,7 @@ Step 2  = {rv['r2']:.4f}   |   Step 3a = {rv['r3a']:.4f}   |   Step 3b = {rv['r3
 
 # ── Tab 5: Sensitivity ──────────────────────────────────────────────────────
 with t5:
-    st.markdown("## Sensitivity Analysis")
+    st.markdown("## 📈 Analyse de sensibilité")
     st.markdown('<div class="ibox">These curves show how the three interaction ratios respond to load changes. The gold dot marks the current design point. Adjust sliders in the sidebar to watch all results update live.</div>',unsafe_allow_html=True)
     st.plotly_chart(sensitivity_fig(rv),use_container_width=True,key="sens")
     gov_step=("Step 2" if rv["r2"]>=rv["r3a"] and rv["r2"]>=rv["r3b"]
