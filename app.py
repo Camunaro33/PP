@@ -801,33 +801,92 @@ def col_curve_fig(rv, axis="x"):
 #  PLOTLY: SLENDERNESS BARS
 # ═══════════════════════════════════════════════════════════════════════════════
 def slender_fig(rv):
-    cf_col=[GR,GR,GO,RD][rv["cf"]-1]
-    cw_col=[GR,GR,GO,RD][rv["cw"]-1]
-    cats  = ["Actual\nb/(2tf)","Cl.1","Cl.2","Cl.3","Actual\nh/tw","Cl.1","Cl.2","Cl.3"]
-    vals  = [rv["b2tf"],rv["fl"][1],rv["fl"][2],rv["fl"][3],
-             rv["htw"], rv["wb"][1],rv["wb"][2],rv["wb"][3]]
-    ec=[cf_col,GR,GO,RD, cw_col,GR,GO,RD]
-    def rgba(h,a):
-        r,g,b=tuple(int(h.lstrip("#")[i:i+2],16) for i in (0,2,4))
-        return f"rgba({r},{g},{b},{a})"
-    fc=[rgba(c,0.2) for c in ec]
-    fig=go.Figure()
-    for c,v,e,f in zip(cats,vals,ec,fc):
-        fig.add_trace(go.Bar(x=[c],y=[v],
-            marker=dict(color=f,line=dict(color=e,width=1.8)),
-            text=[f"{v:.2f}"],textposition="outside",
-            textfont=dict(size=9,color=e),showlegend=False))
-    fig.add_vline(x=3.5,line=dict(color="#888",width=1,dash="dash"))
-    fig.add_annotation(x=1.5,y=max(vals)*1.17,
-        text=f"<b>FLANGE  →  Class {rv['cf']}</b>",
-        showarrow=False,font=dict(size=11,color=cf_col))
-    fig.add_annotation(x=5.5,y=max(vals)*1.17,
-        text=f"<b>WEB  →  Class {rv['cw']}</b>",
-        showarrow=False,font=dict(size=11,color=cw_col))
+    """
+    Clean classification chart:
+      Left group  (x = 0,1,2,3): Actual b/(2tf) | Cl.1 limit | Cl.2 limit | Cl.3 limit
+      Right group (x = 5,6,7,8): Actual h/tw    | Cl.1 limit | Cl.2 limit | Cl.3 limit
+    One actual bar per group — no repetition.
+    A dashed horizontal line across the limits shows where the actual value sits.
+    """
+    cf_col = [GR,GR,GO,RD][rv["cf"]-1]
+    cw_col = [GR,GR,GO,RD][rv["cw"]-1]
+
+    def rgba(hex_col, alpha):
+        r,g,b = tuple(int(hex_col.lstrip("#")[i:i+2],16) for i in (0,2,4))
+        return f"rgba({r},{g},{b},{alpha})"
+
+    fig = go.Figure()
+
+    # ── FLANGE group (positions 0,1,2,3) ──────────────────────────────────
+    flange_data = [
+        ("Actual<br>b/(2tf)", rv["b2tf"],  cf_col, 0.85),   # actual – solid
+        ("Cl. 1 limit",       rv["fl"][1], GR,     0.20),   # Class 1 limit
+        ("Cl. 2 limit",       rv["fl"][2], GO,     0.20),   # Class 2 limit
+        ("Cl. 3 limit",       rv["fl"][3], RD,     0.20),   # Class 3 limit
+    ]
+    for i, (lbl, val, col, alpha) in enumerate(flange_data):
+        fig.add_trace(go.Bar(
+            x=[i], y=[val],
+            marker=dict(color=rgba(col, alpha), line=dict(color=col, width=2.0)),
+            text=[f"<b>{val:.2f}</b>"], textposition="outside",
+            textfont=dict(size=10, color=col),
+            name=lbl, showlegend=False,
+            hovertemplate=f"<b>{lbl}</b><br>{val:.2f}<extra></extra>"))
+
+    # Horizontal dashed line at actual b/(2tf) across the three limit bars
+    fig.add_shape(type="line",
+        x0=0.5, x1=3.5, y0=rv["b2tf"], y1=rv["b2tf"],
+        line=dict(color=cf_col, width=1.5, dash="dot"))
+
+    # ── WEB group (positions 5,6,7,8 — gap at 4) ──────────────────────────
+    web_data = [
+        ("Actual<br>h/tw",    rv["htw"],   cw_col, 0.85),
+        ("Cl. 1 limit",       rv["wb"][1], GR,     0.20),
+        ("Cl. 2 limit",       rv["wb"][2], GO,     0.20),
+        ("Cl. 3 limit",       rv["wb"][3], RD,     0.20),
+    ]
+    for i, (lbl, val, col, alpha) in enumerate(web_data):
+        fig.add_trace(go.Bar(
+            x=[i+5], y=[val],
+            marker=dict(color=rgba(col, alpha), line=dict(color=col, width=2.0)),
+            text=[f"<b>{val:.2f}</b>"], textposition="outside",
+            textfont=dict(size=10, color=col),
+            name=lbl, showlegend=False,
+            hovertemplate=f"<b>{lbl}</b><br>{val:.2f}<extra></extra>"))
+
+    # Horizontal dashed line at actual h/tw across the three limit bars
+    fig.add_shape(type="line",
+        x0=5.5, x1=8.5, y0=rv["htw"], y1=rv["htw"],
+        line=dict(color=cw_col, width=1.5, dash="dot"))
+
+    # ── Separator between groups ───────────────────────────────────────────
+    max_val = max(rv["fl"][3], rv["wb"][3], rv["b2tf"], rv["htw"])
+    fig.add_shape(type="line",
+        x0=4, x1=4, y0=0, y1=max_val*1.25,
+        line=dict(color="#BBBBBB", width=1.5, dash="dash"))
+
+    # ── Group labels ───────────────────────────────────────────────────────
+    fig.add_annotation(x=1.5, y=max_val*1.22,
+        text=f"<b>AILE  →  Classe {rv['cf']}</b>",
+        showarrow=False, font=dict(size=12, color=cf_col))
+    fig.add_annotation(x=6.5, y=max_val*1.22,
+        text=f"<b>ÂME  →  Classe {rv['cw']}</b>",
+        showarrow=False, font=dict(size=12, color=cw_col))
+
+    # ── x-axis tick labels ─────────────────────────────────────────────────
+    tick_vals = [0,1,2,3,  5,6,7,8]
+    tick_text = ["Actual<br>b/(2tf)","Cl. 1","Cl. 2","Cl. 3",
+                 "Actual<br>h/tw",   "Cl. 1","Cl. 2","Cl. 3"]
+
     fig.update_layout(
-        yaxis=dict(title="Slenderness ratio",showgrid=True,gridcolor="#EEE"),
-        height=285,margin=dict(l=50,r=10,t=30,b=10),
-        paper_bgcolor="white",plot_bgcolor="white")
+        xaxis=dict(tickvals=tick_vals, ticktext=tick_text,
+                   tickfont=dict(size=10), showgrid=False),
+        yaxis=dict(title="Rapport d'élancement", showgrid=True,
+                   gridcolor="#EEE", range=[0, max_val*1.30]),
+        height=320, margin=dict(l=55, r=10, t=10, b=10),
+        paper_bgcolor="white", plot_bgcolor="white",
+        bargap=0.25,
+    )
     return fig
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -854,9 +913,9 @@ def sensitivity_fig(rv):
         (Cf_v,r2c,r3ac,r3bc,bCf,"Cf (kN)"),
         (Mfx_v,r2m,r3am,r3bm,bMfx,"Mfx (kN·m)")],1):
         sl=ci==1
-        fig.add_trace(go.Scatter(x=xv,y=r2v,name="Step 2",line=dict(color=TL,width=2.5),showlegend=sl),row=1,col=ci)
-        fig.add_trace(go.Scatter(x=xv,y=r3av,name="Step 3a",line=dict(color=OR,width=2.5),showlegend=sl),row=1,col=ci)
-        fig.add_trace(go.Scatter(x=xv,y=r3bv,name="Step 3b",line=dict(color=PU,width=2.5),showlegend=sl),row=1,col=ci)
+        fig.add_trace(go.Scatter(x=xv,y=r2v,name="② Vérif. section",line=dict(color=TL,width=2.5),showlegend=sl),row=1,col=ci)
+        fig.add_trace(go.Scatter(x=xv,y=r3av,name="③ Pièce sans dévers.",line=dict(color=OR,width=2.5),showlegend=sl),row=1,col=ci)
+        fig.add_trace(go.Scatter(x=xv,y=r3bv,name="④ Pièce avec dévers.",line=dict(color=PU,width=2.5),showlegend=sl),row=1,col=ci)
         fig.add_hline(y=1.0,line=dict(color=RD,width=2,dash="dash"),row=1,col=ci)
         fig.add_vline(x=xpt,line=dict(color=GO,width=1.5,dash="dot"),row=1,col=ci)
         for yv,c in zip([rv["r2"],rv["r3a"],rv["r3b"]],[TL,OR,PU]):
@@ -943,21 +1002,20 @@ rv = compute(sn, Cf_kN, Mfx_kNm, Mfy_kNm, L_mm, Kx, Ky, k_ratio, omega2)
 # ═══════════════════════════════════════════════════════════════════════════════
 # ── Course / author header ───────────────────────────────────────────────────
 st.markdown("""
-<div style="display:flex;align-items:center;justify-content:space-between;
-            border-bottom:2px solid #1565C0;padding-bottom:8px;margin-bottom:4px">
-  <div>
-    <div style="font-size:1.55rem;font-weight:800;color:#1565C0;line-height:1.2">
-      🏗️ Beam-Column Design — CSA S16-24  (Cl. 13)
-    </div>
-    <div style="font-size:.88rem;color:#555;margin-top:3px">
-      Section properties: CISC HSC Table T1 &nbsp;·&nbsp;
-      Cr/A: Table T2 &nbsp;·&nbsp; Lu: Table T3
-    </div>
+<div style="border-bottom:2px solid #1565C0;padding-bottom:10px;margin-bottom:6px">
+  <div style="font-size:1.5rem;font-weight:800;color:#1565C0;line-height:1.25;margin-bottom:2px">
+    🏗️ Vérification d'une pièce poteau-poutre — CSA S16-24  (Cl. 13)
   </div>
-  <div style="text-align:right;font-size:.82rem;color:#444;line-height:1.6">
-    <strong style="font-size:.95rem;color:#1565C0">GCI 2011 — Structures en acier</strong><br>
-    Université Laval<br>
-    Prof. Luca Sorelli, ing., Ph.D.
+  <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">
+    <div style="font-size:.85rem;color:#555">
+      Propriétés des sections : CISC HSC Table T1 &nbsp;·&nbsp;
+      Cr/A : Table T2 &nbsp;·&nbsp; Lu : Table T3
+    </div>
+    <div style="font-size:.82rem;color:#444;text-align:right;line-height:1.55">
+      <strong style="color:#1565C0">GCI 2011 — Structures en acier</strong>
+      &nbsp;|&nbsp; Université Laval
+      &nbsp;|&nbsp; Prof. Luca Sorelli, ing., Ph.D.
+    </div>
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -976,11 +1034,11 @@ c1,c2,c3,c4,c5,c6 = st.columns(6)
 def kpi(v,lbl,col):
     return (f'<div class="kpi"><div class="kpi-l">{lbl}</div>'
             f'<div class="kpi-v" style="color:{col}">{v}</div></div>')
-c1.markdown(kpi(f"Class {rv['cls']}","Section class",[GR,GR,GO,RD][rv["cls"]-1]),unsafe_allow_html=True)
-c2.markdown(kpi(f"{rv['r2']:.4f}","Step 2",rclr(rv["r2"])),unsafe_allow_html=True)
-c3.markdown(kpi(f"{rv['r3a']:.4f}","Step 3a",rclr(rv["r3a"])),unsafe_allow_html=True)
-c4.markdown(kpi(f"{rv['r3b']:.4f}","Step 3b",rclr(rv["r3b"])),unsafe_allow_html=True)
-c5.markdown(kpi(f"{rv['gov']:.4f}","GOVERNING",rclr(rv["gov"])),unsafe_allow_html=True)
+c1.markdown(kpi(f"Classe {rv['cls']}","Classe de la section",[GR,GR,GO,RD][rv["cls"]-1]),unsafe_allow_html=True)
+c2.markdown(kpi(f"{rv['r2']:.4f}","② Vérif. section",rclr(rv["r2"])),unsafe_allow_html=True)
+c3.markdown(kpi(f"{rv['r3a']:.4f}","③ Pièce sans dévers.",rclr(rv["r3a"])),unsafe_allow_html=True)
+c4.markdown(kpi(f"{rv['r3b']:.4f}","④ Pièce avec dévers.",rclr(rv["r3b"])),unsafe_allow_html=True)
+c5.markdown(kpi(f"{rv['gov']:.4f}","GOUVERNANT",rclr(rv["gov"])),unsafe_allow_html=True)
 c6.markdown(kpi("✓ OK" if rv["ok"] else "✗ NG","VERDICT",GR if rv["ok"] else RD),unsafe_allow_html=True)
 st.markdown("---")
 
@@ -1059,7 +1117,7 @@ with t1:
 <b>WEB</b>  h/tw  ≤  (1700/√Fy)·(1 − 0.391·Cf/φCy)  (Class 2 limit)<br>
   φCy = {rv['pCy']/1e3:.1f} kN   {rv['h']}/{rv['tw']} = <b>{rv['htw']:.3f}</b>
   ≤  (1700/√{rv['Fy']})·(1 − 0.391·{rv['Cf']/1e3:.1f}/{rv['pCy']/1e3:.1f}) = <b>{rv['wb'][2]:.3f}</b>  → Web <b>Class {rv['cw']}</b><br><br>
-<b>GOVERNING CLASS = max({rv['cf']}, {rv['cw']}) = Class {rv['cls']}</b>
+<b>CLASSE GOUVERNANTE = max({rv['cf']}, {rv['cw']}) = Classe {rv['cls']}</b>
   → Mrx = {'φ·Fy·Zx (plastic)' if rv['cls']<=2 else 'φ·Fy·Sx (elastic)'} = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>
 </div>""", unsafe_allow_html=True)
 
@@ -1126,11 +1184,11 @@ U1x = <b>{rv['U1b']:.4f}</b>  (≥ 1.0)<br><br>
 = <b>{rv['T3b_A']:.4f}</b>  +  <b>{rv['T3b_B']:.4f}</b>  +  <b>{rv['T3b_C']:.4f}</b>  =  <b>{rv['r3b']:.4f}</b>
 </div>""", unsafe_allow_html=True)
     st.markdown(rhtml(rv["r3b"]),unsafe_allow_html=True)
-    gov_step=("Step 2" if rv["r2"]>=rv["r3a"] and rv["r2"]>=rv["r3b"]
-              else ("Step 3a" if rv["r3a"]>=rv["r3b"] else "Step 3b"))
+    gov_step=("② Vérif. section" if rv["r2"]>=rv["r3a"] and rv["r2"]>=rv["r3b"]
+              else ("③ Pièce sans dévers." if rv["r3a"]>=rv["r3b"] else "④ Pièce avec dévers."))
     st.markdown(f"""<div class="fbox">
-Step 2  = {rv['r2']:.4f}   |   Step 3a = {rv['r3a']:.4f}   |   Step 3b = {rv['r3b']:.4f}<br>
-<b>GOVERNING = {gov_step} → {rv['gov']:.4f}</b>
+② Vérif. section = {rv['r2']:.4f}   |   ③ Sans dévers. = {rv['r3a']:.4f}   |   ④ Avec dévers. = {rv['r3b']:.4f}<br>
+<b>GOUVERNANT = {gov_step} → {rv['gov']:.4f}</b>
 </div>""", unsafe_allow_html=True)
     st.markdown(rhtml(rv["gov"]),unsafe_allow_html=True)
 
@@ -1139,11 +1197,11 @@ with t5:
     st.markdown("## 📈 Analyse de sensibilité")
     st.markdown('<div class="ibox">These curves show how the three interaction ratios respond to load changes. The gold dot marks the current design point. Adjust sliders in the sidebar to watch all results update live.</div>',unsafe_allow_html=True)
     st.plotly_chart(sensitivity_fig(rv),use_container_width=True,key="sens")
-    gov_step=("Step 2" if rv["r2"]>=rv["r3a"] and rv["r2"]>=rv["r3b"]
-              else ("Step 3a" if rv["r3a"]>=rv["r3b"] else "Step 3b"))
+    gov_step=("② Vérif. section" if rv["r2"]>=rv["r3a"] and rv["r2"]>=rv["r3b"]
+              else ("③ Pièce sans dévers." if rv["r3a"]>=rv["r3b"] else "④ Pièce avec dévers."))
     st.markdown(f"""<div class="fbox">
-Current governing check: <b>{gov_step}</b>  =  <b>{rv['gov']:.4f}</b>  —  {'ADEQUATE ✓' if rv['ok'] else 'INADEQUATE ✗'}<br>
-Teal = Step 2 (cross-section)  |  Orange = Step 3a (no LTB)  |  Purple = Step 3b (with LTB)<br>
+Vérification gouvernante : <b>{gov_step}</b>  =  <b>{rv['gov']:.4f}</b>  —  {'ADÉQUAT ✓' if rv['ok'] else 'INADÉQUAT ✗'}<br>
+Sarcelle = ② Vérif. section  |  Orange = ③ Pièce sans dévers.  |  Violet = ④ Pièce avec dévers.<br>
 Green zone = safe (ratio &lt; 1.0)   |   Red zone = inadequate (ratio &gt; 1.0)
 </div>""", unsafe_allow_html=True)
 
