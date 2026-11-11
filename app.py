@@ -8,7 +8,7 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 st.set_page_config(
-    page_title="GCI2011 — Beam-Column Design  |  Université Laval",
+    page_title="GCI 2011 — Conception de Structures I  |  Université Laval",
     page_icon="🏗️",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -59,7 +59,7 @@ if not st.session_state["accepted"]:
   <!-- Course & author header -->
   <div style="text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #E0C860">
     <div style="font-size:1.35rem;font-weight:800;color:#1565C0;letter-spacing:.03em">
-      🏗️ GCI 2011 — Structures en acier
+      🏗️ GCI 2011 — Conception de Structures I
     </div>
     <div style="font-size:1.0rem;color:#333;margin-top:4px">
       <strong>Université Laval</strong> — Département de génie civil et de génie des eaux
@@ -76,7 +76,7 @@ if not st.session_state["accepted"]:
   <p><strong>Please read carefully before proceeding. You must accept these terms to access this tool.</strong></p>
 
   <p>This application was developed exclusively for <strong>academic and educational purposes</strong>
-  as a teaching aid for <strong>GCI 2011 — Structures en acier</strong> at <strong>Université Laval</strong>,
+  as a teaching aid for <strong>GCI 2011 — Conception de Structures I</strong> at <strong>Université Laval</strong>,
   under the supervision of <strong>Prof. Luca Sorelli</strong>.
   It is intended to help students understand the beam-column design methodology described in
   <strong>CSA S16-24 — Design of Steel Structures, Clause 13</strong>, using section property data
@@ -108,7 +108,7 @@ if not st.session_state["accepted"]:
   </ul>
 
   <div class="sign">
-    GCI 2011 — Structures en acier &nbsp;|&nbsp; Université Laval &nbsp;|&nbsp;
+    GCI 2011 — Conception de Structures I &nbsp;|&nbsp; Université Laval &nbsp;|&nbsp;
     Prof. Luca Sorelli, ing., Ph.D.<br>
     Reference: CSA S16-24 Cl. 13 &nbsp;|&nbsp; CISC HSC 13th ed. &nbsp;|&nbsp;
     φ = 0.90 &nbsp;|&nbsp; n = 1.34
@@ -983,7 +983,7 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("""
 <div style="font-size:.75rem;color:#666;line-height:1.7">
-  <strong style="color:#1565C0">GCI 2011 — Structures en acier</strong><br>
+  <strong style="color:#1565C0">GCI 2011 — Conception de Structures I</strong><br>
   Université Laval<br>
   Prof. Luca Sorelli, ing., Ph.D.<br><br>
   φ = 0.90 &nbsp;|&nbsp; E = 200 000 MPa &nbsp;|&nbsp; G = 77 000 MPa<br>
@@ -1012,7 +1012,7 @@ st.markdown("""
       Cr/A : Table T2 &nbsp;·&nbsp; Lu : Table T3
     </div>
     <div style="font-size:.82rem;color:#444;text-align:right;line-height:1.55">
-      <strong style="color:#1565C0">GCI 2011 — Structures en acier</strong>
+      <strong style="color:#1565C0">GCI 2011 — Conception de Structures I</strong>
       &nbsp;|&nbsp; Université Laval
       &nbsp;|&nbsp; Prof. Luca Sorelli, ing., Ph.D.
     </div>
@@ -1210,7 +1210,7 @@ st.markdown("""
 <div style='background:#FFF8E1;border:1.5px solid #F57F17;border-radius:6px;
             padding:12px 16px;font-size:.82rem;color:#7B3F00;margin-top:8px'>
 <strong>⚠️ EDUCATIONAL USE ONLY — NO LIABILITY.</strong>
-This tool is a teaching aid developed for <strong>GCI 2011 — Structures en acier</strong>
+This tool is a teaching aid developed for <strong>GCI 2011 — Conception de Structures I</strong>
 at <strong>Université Laval</strong> under the supervision of
 <strong>Prof. Luca Sorelli, ing., Ph.D.</strong>
 It must not be used for the design, verification, or assessment of any real structure or
