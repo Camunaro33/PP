@@ -432,58 +432,67 @@ def section_fig(rv):
              fillcolor=WC,line=dict(color="#1A3A5C",width=0.8),layer="above"),
     ]
 
-    ann = dict(showarrow=False,font=dict(size=10,color="#444"))
     dim_color = "#555"
 
     annotations = [
-        # ── bf (top) ──────────────────────────────────────────────────────
+        # ── bf label (top) ────────────────────────────────────────────────
         dict(x=0, y=hd+d*.09, text=f"<b>bf = {bf} mm</b>",
-             xanchor="center", yanchor="bottom", **{k:v for k,v in ann.items() if k!="font"},
-             showarrow=False, font=dict(size=10,color=dim_color)),
+             xanchor="center", yanchor="bottom",
+             showarrow=False, font=dict(size=10, color=dim_color)),
+        # ── bf arrow ──────────────────────────────────────────────────────
         dict(ax=-hbf, ay=hd+d*.05, axref="x", ayref="y",
-             x=hbf,   y=hd+d*.05, xref="x",  yref="y",
-             arrowhead=2, arrowside="end+start", arrowcolor=dim_color, arrowwidth=1.2,
+             x=hbf, y=hd+d*.05, xref="x", yref="y",
+             arrowhead=2, arrowside="end+start",
+             arrowcolor=dim_color, arrowwidth=1.2,
              showarrow=True, text=""),
-        # ── d (left) ──────────────────────────────────────────────────────
+        # ── d label (left) ────────────────────────────────────────────────
         dict(x=-hbf-bf*.18, y=0, text=f"<b>d = {d} mm</b>",
              xanchor="center", yanchor="middle", textangle=-90,
-             showarrow=False, font=dict(size=10,color=dim_color)),
+             showarrow=False, font=dict(size=10, color=dim_color)),
+        # ── d arrow ───────────────────────────────────────────────────────
         dict(ax=-hbf-bf*.12, ay=-hd, axref="x", ayref="y",
-             x=-hbf-bf*.12,  y=hd,   xref="x",  yref="y",
-             arrowhead=2, arrowside="end+start", arrowcolor=dim_color, arrowwidth=1.2,
+             x=-hbf-bf*.12, y=hd, xref="x", yref="y",
+             arrowhead=2, arrowside="end+start",
+             arrowcolor=dim_color, arrowwidth=1.2,
              showarrow=True, text=""),
-        # ── tf (right, top flange) ─────────────────────────────────────────
+        # ── tf label ──────────────────────────────────────────────────────
         dict(x=hbf+bf*.06, y=hd-tf/2, text=f"tf = {tf} mm",
              xanchor="left", yanchor="middle",
-             showarrow=False, font=dict(size=9,color=dim_color)),
+             showarrow=False, font=dict(size=9, color=dim_color)),
+        # ── tf arrow ──────────────────────────────────────────────────────
         dict(ax=hbf+bf*.04, ay=hd, axref="x", ayref="y",
-             x=hbf+bf*.04,  y=hd-tf, xref="x", yref="y",
-             arrowhead=2, arrowside="end+start", arrowcolor=dim_color, arrowwidth=1.0,
+             x=hbf+bf*.04, y=hd-tf, xref="x", yref="y",
+             arrowhead=2, arrowside="end+start",
+             arrowcolor=dim_color, arrowwidth=1.0,
              showarrow=True, text=""),
-        # ── tw (right, mid-web) ───────────────────────────────────────────
+        # ── tw label ──────────────────────────────────────────────────────
         dict(x=hbf+bf*.06, y=0, text=f"tw = {tw} mm",
              xanchor="left", yanchor="middle",
-             showarrow=False, font=dict(size=9,color=dim_color)),
+             showarrow=False, font=dict(size=9, color=dim_color)),
+        # ── tw arrow ──────────────────────────────────────────────────────
         dict(ax=-htw, ay=0, axref="x", ayref="y",
-             x=htw,  y=0,   xref="x", yref="y",
-             arrowhead=2, arrowside="end+start", arrowcolor=dim_color, arrowwidth=1.0,
+             x=htw, y=0, xref="x", yref="y",
+             arrowhead=2, arrowside="end+start",
+             arrowcolor=dim_color, arrowwidth=1.0,
              showarrow=True, text=""),
-        # ── h (web clear height, inner left) ──────────────────────────────
+        # ── h label (inner left) ──────────────────────────────────────────
         dict(x=-hbf-bf*.06, y=0, text=f"h = {h} mm",
              xanchor="right", yanchor="middle", textangle=-90,
-             showarrow=False, font=dict(size=8,color="#999")),
-        # ── labels ────────────────────────────────────────────────────────
+             showarrow=False, font=dict(size=8, color="#999")),
+        # ── section name ──────────────────────────────────────────────────
         dict(x=0, y=-hd-d*.16, text=f"<b>{rv['sn']}</b>",
              xanchor="center", yanchor="top",
-             showarrow=False, font=dict(size=14,color=BL)),
+             showarrow=False, font=dict(size=14, color=BL)),
+        # ── class label ───────────────────────────────────────────────────
         dict(x=0, y=-hd-d*.28,
              text=f"<b>Class {rv['cls']}</b>  (Flange: {rv['cf']} | Web: {rv['cw']})",
              xanchor="center", yanchor="top",
-             showarrow=False, font=dict(size=11,color=cls_col)),
+             showarrow=False, font=dict(size=11, color=cls_col)),
+        # ── area / Fy ─────────────────────────────────────────────────────
         dict(x=0, y=-hd-d*.40,
              text=f"A = {rv['A']:,} mm²  |  Fy = {rv['Fy']} MPa",
              xanchor="center", yanchor="top",
-             showarrow=False, font=dict(size=9,color="#666")),
+             showarrow=False, font=dict(size=9, color="#666")),
     ]
 
     fig = go.Figure()
