@@ -944,208 +944,239 @@ def section_fig(rv):
 # ═══════════════════════════════════════════════════════════════════════════════
 def member_fig(rv):
     """
-    Clean engineering diagram of a beam-column.
-    - Column drawn with REAL proportions (bf / L ratio preserved)
-    - Cf  : solid red arrows at top AND bottom, pointing inward
-    - Mfx : proper moment arc symbols AT EACH END (top-end and bottom-end)
-            sign: positive k (double curvature) → arcs oppose each other
-                  negative k (single curvature) → arcs same direction
-    - Mfy : smaller moment arcs for weak-axis biaxial bending
-    Uses pure SVG via Plotly shapes + annotations for clean rendering.
+    Engineering diagram of a beam-column.
+
+    MOMENT SYMBOL CONVENTION
+    ─────────────────────────
+    Each end shows a curved half-circle arrow — the standard engineering
+    moment symbol — with the arrowhead showing the rotation direction.
+
+    Sign convention (HSC 13.8.5):
+      Positive moment  (+)  →  counter-clockwise arrow  (CCW)
+      Negative moment  (−)  →  clockwise arrow           (CW)
+
+    κ = Mf1/Mf2:
+      κ > 0 → both arrows turn the SAME way relative to the member
+              → double curvature (favourable)
+      κ < 0 → arrows turn OPPOSITE ways → single curvature (unfavourable)
+      κ = 0 → one end has no moment
+
+    Layout:
+      Mf2 (larger, reference) at the TOP end, on the RIGHT
+      Mf1 (other end)         at the BOTTOM, on the LEFT
+      This clearly shows whether they add up (single) or oppose (double).
+
+    Also drawn:
+      Moment diagram (linear fill between ends) on the right face
+      Cf straight arrows (compression, inward)
+      Mfy weak-axis smaller arcs if biaxial
     """
-    import math as _math
+    Cf_kN = rv["Cf"] / 1e3
+    Mf2x  = rv.get("Mf2x", rv["Mfx"]) / 1e6
+    Mf1x  = rv.get("Mf1x", rv["Mfx"] * rv["k"]) / 1e6
+    Mf2y  = rv.get("Mf2y", rv["Mfy"]) / 1e6
+    Mf1y  = rv.get("Mf1y", rv["Mfy"] * rv.get("kwy",1.0)) / 1e6
+    L_m   = rv["L"] / 1000
+    k     = rv["k"]
+    bf_mm = rv["bf"]
 
-    Cf_kN = rv["Cf"]  / 1e3
-    Mfx   = rv["Mfx"] / 1e6
-    Mfy   = rv["Mfy"] / 1e6
-    L_m   = rv["L"]   / 1000
-    k     = rv["k"]           # +1 = double curvature, −1 = single
-    d_mm  = rv["d"]           # section depth   [mm]
-    bf_mm = rv["bf"]          # flange width    [mm]
-
-    # ── drawing space ────────────────────────────────────────────────────────
-    # Map real section to drawing: preserve bf/L aspect ratio
-    # column half-width in drawing units = 1.0  (always)
-    # column height proportional to real L/bf
-    W    = 1.0                        # column half-width (fixed)
-    ratio = rv["L"] / bf_mm           # L/bf  (typically 10–50)
-    H    = W * 2 * min(ratio, 20)     # cap at 20× for very slender columns
-    H    = max(H, 4.0)                # minimum height for readability
-
-    CF_C = "#B71C1C"   # red  – axial
-    MX_C = "#1565C0"   # blue – strong-axis moment
-    MY_C = "#C45000"   # orange – weak-axis moment
-
+    # ── Drawing space ────────────────────────────────────────────────────────
+    W   = 1.0
+    H   = max(W * 2 * min(rv["L"] / bf_mm, 20), 4.0)
+    ext = H * 0.20          # Cf arrow overhang
+    R   = W * 1.3           # moment arc radius
+    CF_C  = "#B71C1C"
+    MX_C  = "#1565C0"
+    MY_C  = "#C45000"
+    NEG_C = "#DC2626"
     shapes, annotations = [], []
 
+    # ── Helper: curved moment arrow ──────────────────────────────────────────
+    # Draws a half-circle arc centred at (cx, cy) with radius R.
+    # positive=True  → CCW arc (top-to-right), arrowhead points RIGHT
+    # positive=False → CW  arc (top-to-left),  arrowhead points LEFT
+    # The arc spans from 90° to −90° (right half-circle) for CCW,
+    # or from 90° to 270° (left half-circle) for CW.
+    def moment_arc(cx, cy, r, positive, color, label, label_side="right"):
+        """
+        Draw a half-circle moment symbol at (cx, cy).
+        positive=True  → CCW rotation → arc on the RIGHT of centre
+        positive=False → CW  rotation → arc on the LEFT  of centre
+        """
+        # Arc points: parameterised as (cx + r·cos θ, cy + r·sin θ)
+        # CCW (positive): arc from top (90°) → bottom (270°) going right
+        #   start = (cx, cy+r)  end = (cx, cy−r)  bulge to the RIGHT
+        # CW  (negative): arc from top (90°) → bottom (270°) going left
+        #   start = (cx, cy+r)  end = (cx, cy−r)  bulge to the LEFT
+        x_start = cx
+        y_start = cy + r
+        x_end   = cx
+        y_end   = cy - r
+        # SVG arc: large-arc=0, sweep=1 (CW in SVG coords which are Y-down)
+        # Plotly uses standard math coords (Y-up), so:
+        # sweep=0 → CCW in screen = CW in math  (negative moment)
+        # sweep=1 → CW  in screen = CCW in math (positive moment)
+        sweep = 1 if positive else 0
+
+        shapes.append(dict(
+            type="path",
+            path=(f"M {x_start:.3f},{y_start:.3f} "
+                  f"A {r:.3f},{r:.3f} 0 0,{sweep} {x_end:.3f},{y_end:.3f}"),
+            line=dict(color=color, width=3.0),
+            fillcolor="rgba(0,0,0,0)"))
+
+        # Arrowhead tangent at end of arc
+        # At the bottom of the CCW arc (sweep=1): tangent points RIGHT (+x)
+        # At the bottom of the CW  arc (sweep=0): tangent points LEFT  (−x)
+        dx = 0.12 * r
+        ax_tail = x_end - dx if positive else x_end + dx
+        annotations.append(dict(
+            ax=ax_tail, ay=y_end, axref="x", ayref="y",
+            x=x_end + (dx if positive else -dx),
+            y=y_end, xref="x", yref="y",
+            arrowhead=2, arrowwidth=2.5, arrowcolor=color,
+            showarrow=True, text=""))
+
+        # Label
+        sign_sym = "+" if positive else "−"
+        x_lbl = cx + r + 0.18 if label_side == "right" else cx - r - 0.18
+        x_anc = "left"        if label_side == "right" else "right"
+        annotations.append(dict(
+            x=x_lbl, y=cy,
+            text=f"<b>{sign_sym}{abs(label):.0f} kN·m</b>",
+            xanchor=x_anc, yanchor="middle",
+            showarrow=False, font=dict(size=11, color=color)))
+
+        # Rotation indicator text
+        rot_txt = "↺ CCW (+)" if positive else "↻ CW (−)"
+        annotations.append(dict(
+            x=x_lbl, y=cy - r*0.55,
+            text=f"<span style='font-size:9px;color:{color}'>{rot_txt}</span>",
+            xanchor=x_anc, yanchor="top",
+            showarrow=False, font=dict(size=9, color=color)))
+
     # ── 1. Column body ───────────────────────────────────────────────────────
-    shapes.append(dict(
-        type="rect", x0=-W, y0=0, x1=W, y1=H,
-        fillcolor="rgba(46,109,164,0.22)",
-        line=dict(color="#1A3A5C", width=2.0)))
+    shapes.append(dict(type="rect", x0=-W, y0=0, x1=W, y1=H,
+        fillcolor="rgba(46,109,164,0.20)",
+        line=dict(color="#1A3A5C", width=2.5)))
 
-    # ── 2. Cf arrows (pointing INWARD at both ends) ──────────────────────────
-    ext_cf = H * 0.22
+    # ── 2. Cf arrows ─────────────────────────────────────────────────────────
     if Cf_kN > 0:
-        # bottom: tail below, head at y=0
-        annotations += [
-            dict(ax=0, ay=-ext_cf, axref="x", ayref="y",
-                 x=0,  y=0,        xref="x",  yref="y",
-                 arrowhead=2, arrowwidth=3.5, arrowcolor=CF_C,
-                 showarrow=True, text=""),
-            dict(x=0, y=-ext_cf*0.45,
-                 text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
-                 xanchor="center", yanchor="top",
-                 showarrow=False, font=dict(size=12, color=CF_C)),
-            # top: tail above, head at y=H
-            dict(ax=0, ay=H+ext_cf, axref="x", ayref="y",
-                 x=0,  y=H,          xref="x",  yref="y",
-                 arrowhead=2, arrowwidth=3.5, arrowcolor=CF_C,
-                 showarrow=True, text=""),
-            dict(x=0, y=H+ext_cf*0.55,
-                 text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
-                 xanchor="center", yanchor="bottom",
-                 showarrow=False, font=dict(size=12, color=CF_C)),
-        ]
+        for ay, y, ytext, yanc in [
+            (-ext, 0,   -ext*0.5, "top"),
+            (H+ext, H,  H+ext*0.6, "bottom")
+        ]:
+            annotations += [
+                dict(ax=0, ay=ay, axref="x", ayref="y",
+                     x=0, y=y, xref="x", yref="y",
+                     arrowhead=2, arrowwidth=4, arrowcolor=CF_C,
+                     showarrow=True, text=""),
+                dict(x=0, y=ytext,
+                     text=f"<b>Cf = {Cf_kN:.0f} kN</b>",
+                     xanchor="center", yanchor=yanc,
+                     showarrow=False, font=dict(size=11, color=CF_C))
+            ]
 
-    # ── 3. Mfx moment arcs AT THE ENDS  ─────────────────────────────────────
-    # A moment arc is drawn as a curved Plotly path (SVG arc).
-    # At the BOTTOM end (y=0):  arc on LEFT side
-    # At the TOP end   (y=H):  arc on RIGHT side
-    # Sign convention:
-    #   k > 0  (double curvature) → arcs point in OPPOSITE sense (standard positive)
-    #   k < 0  (single curvature) → arcs point in SAME sense
-    if Mfx != 0:
-        R   = W * 1.10    # arc radius
-        gx  = W * 0.30    # gap from column face to arc centre
-        cx_L = -(W + gx + R)   # arc centre x, left side
-        cx_R =  (W + gx + R)   # arc centre x, right side
+    # ── 3. Moment arc symbols ─────────────────────────────────────────────────
+    # Mf2 at TOP-RIGHT:   positive Mf2 → CCW arc on the right
+    # Mf1 at BOTTOM-LEFT: positive Mf1 → CCW arc on the left
+    #                     negative Mf1 → CW  arc on the left
+    # Using LEFT side for Mf1 and RIGHT side for Mf2 clearly separates them
+    # and makes the double/single curvature visually obvious.
+    if abs(Mf2x) > 0:
+        # TOP end — Mf2 — right side of column
+        cx2 = W + R + 0.1
+        cy2 = H
+        m2_pos = (Mf2x >= 0)
+        col2   = MX_C if m2_pos else NEG_C
+        moment_arc(cx2, cy2, R, m2_pos, col2, Mf2x, label_side="right")
 
-        # ── BOTTOM end arc (left side) ───────────────────────────────────────
-        # Arc from (cx_L, R) down to (cx_L+R, 0) → counter-clockwise = positive Mfx
-        # For k>0 (double curv): bottom M is positive (CCW on left face)
-        # We draw a 3/4 circle from 90° to 0° (CCW)
-        bot_start_x = cx_L
-        bot_start_y = R
-        bot_end_x   = cx_L + R
-        bot_end_y   = 0.0
-        shapes.append(dict(
-            type="path",
-            path=f"M {cx_L:.3f},{R:.3f} A {R:.3f},{R:.3f} 0 0,1 {cx_L+R:.3f},0",
-            line=dict(color=MX_C, width=3.0),
-            fillcolor="rgba(0,0,0,0)"))
-        # arrowhead at end of arc (pointing right → downward tangent)
-        annotations.append(dict(
-            ax=cx_L+R-0.01, ay=0.12, axref="x", ayref="y",
-            x= cx_L+R+0.01, y=-0.02, xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=cx_L - R*0.3, y=-R*0.1,
-            text=f"<b>Mfx = {Mfx:.0f} kN·m</b>",
-            xanchor="right", yanchor="top",
-            showarrow=False, font=dict(size=11, color=MX_C)))
+        # BOTTOM end — Mf1 — left side of column
+        cx1 = -(W + R + 0.1)
+        cy1 = 0
+        m1_pos = (Mf1x >= 0)
+        col1   = MX_C if m1_pos else NEG_C
+        moment_arc(cx1, cy1, R, m1_pos, col1, Mf1x, label_side="left")
 
-        # ── TOP end arc (right side) ─────────────────────────────────────────
-        # For double curvature (k>0): top M is also positive but mirrored
-        # Arc from (cx_R, H-R) up to (cx_R-R, H) → CCW
-        top_flip = 1 if k >= 0 else -1   # flip for single curvature
-        shapes.append(dict(
-            type="path",
-            path=f"M {cx_R:.3f},{H-R:.3f} A {R:.3f},{R:.3f} 0 0,0 {cx_R-R:.3f},{H:.3f}",
-            line=dict(color=MX_C, width=3.0),
-            fillcolor="rgba(0,0,0,0)"))
-        annotations.append(dict(
-            ax=cx_R-R+0.01, ay=H-0.12, axref="x", ayref="y",
-            x= cx_R-R-0.01, y=H+0.02,  xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2.5, arrowcolor=MX_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=cx_R + R*0.3, y=H+R*0.1,
-            text=f"<b>Mfx = {Mfx:.0f} kN·m</b>",
-            xanchor="left", yanchor="bottom",
-            showarrow=False, font=dict(size=11, color=MX_C)))
+        # ── Moment diagram (linear fill on right face of column) ──────────────
+        MX_SCALE = W * 1.4
+        m2n =  MX_SCALE
+        m1n = (Mf1x / abs(Mf2x)) * MX_SCALE if abs(Mf2x) > 0 else 0
+        xb  = W
+        if m1n >= 0:
+            shapes.append(dict(type="path",
+                path=f"M {xb:.3f},0 L {xb+m1n:.3f},0 "
+                     f"L {xb+m2n:.3f},{H:.3f} L {xb:.3f},{H:.3f} Z",
+                fillcolor="rgba(21,101,192,0.12)",
+                line=dict(color=MX_C, width=1.5, dash="dot")))
+        else:
+            yz = H * abs(m1n) / (abs(m1n) + m2n)
+            shapes.append(dict(type="path",
+                path=f"M {xb:.3f},0 L {xb+m1n:.3f},0 "
+                     f"L {xb:.3f},{yz:.3f} Z",
+                fillcolor="rgba(220,38,38,0.10)",
+                line=dict(color=NEG_C, width=1.5, dash="dot")))
+            shapes.append(dict(type="path",
+                path=f"M {xb:.3f},{yz:.3f} "
+                     f"L {xb+m2n:.3f},{H:.3f} L {xb:.3f},{H:.3f} Z",
+                fillcolor="rgba(21,101,192,0.12)",
+                line=dict(color=MX_C, width=1.5, dash="dot")))
 
-    # ── 4. Mfy moment arcs (weak-axis biaxial) ───────────────────────────────
-    if Mfy != 0:
-        Ry  = W * 0.70
-        # bottom end – above the Cf label zone, left of centre
-        shapes.append(dict(
-            type="path",
-            path=f"M {-Ry:.3f},{-ext_cf*0.05:.3f} A {Ry:.3f},{Ry:.3f} 0 0,0 {Ry:.3f},{-ext_cf*0.05:.3f}",
-            line=dict(color=MY_C, width=2.5),
-            fillcolor="rgba(0,0,0,0)"))
+        # κ and curvature summary box
+        kappa_color = MX_C if k >= 0 else NEG_C
+        curv_txt    = "Double courbure ✓" if k >= 0 else "Courbure simple"
+        om1_val     = max(0.6 - 0.4*k, 0.4)
         annotations.append(dict(
-            ax=Ry-0.01, ay=-ext_cf*0.05+0.08, axref="x", ayref="y",
-            x= Ry+0.01, y=-ext_cf*0.05-0.05,  xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2, arrowcolor=MY_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=Ry+0.3, y=-ext_cf*0.05,
-            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
-            xanchor="left", yanchor="middle",
-            showarrow=False, font=dict(size=10, color=MY_C)))
-        # top end
-        shapes.append(dict(
-            type="path",
-            path=f"M {Ry:.3f},{H+ext_cf*0.05:.3f} A {Ry:.3f},{Ry:.3f} 0 0,0 {-Ry:.3f},{H+ext_cf*0.05:.3f}",
-            line=dict(color=MY_C, width=2.5),
-            fillcolor="rgba(0,0,0,0)"))
-        annotations.append(dict(
-            ax=-Ry+0.01, ay=H+ext_cf*0.05-0.08, axref="x", ayref="y",
-            x= -Ry-0.01, y=H+ext_cf*0.05+0.05,  xref="x",  yref="y",
-            arrowhead=2, arrowwidth=2, arrowcolor=MY_C,
-            showarrow=True, text=""))
-        annotations.append(dict(
-            x=Ry+0.3, y=H+ext_cf*0.05,
-            text=f"<b>Mfy = {Mfy:.0f} kN·m</b>",
-            xanchor="left", yanchor="middle",
-            showarrow=False, font=dict(size=10, color=MY_C)))
+            x=0, y=H*0.5,
+            text=(f"<b>{rv['sn']}</b><br>"
+                  f"κ = {k:.2f}<br>"
+                  f"<b style='color:{kappa_color}'>{curv_txt}</b><br>"
+                  f"ω1 = {om1_val:.3f}"),
+            xanchor="center", yanchor="middle",
+            showarrow=False,
+            font=dict(size=9, color="#1A3A5C"),
+            bgcolor="rgba(255,255,255,0.90)",
+            bordercolor=kappa_color, borderwidth=1.5, borderpad=5))
 
-    # ── 5. L dimension line (right side) ─────────────────────────────────────
-    xd = W + 0.55
+    # ── 4. Mfy weak-axis arcs (smaller, behind column) ───────────────────────
+    if abs(Mf2y) > 0:
+        Ry  = R * 0.6
+        cx2y = W + 0.2
+        cx1y = -(W + 0.2)
+        m2y_pos = (Mf2y >= 0)
+        m1y_pos = (Mf1y >= 0)
+        moment_arc(cx2y, H, Ry, m2y_pos, MY_C, Mf2y, label_side="right")
+        moment_arc(cx1y, 0,  Ry, m1y_pos, MY_C, Mf1y, label_side="left")
+
+    # ── 5. L dimension line ───────────────────────────────────────────────────
+    xd = W + 2*R + 2.8
     annotations += [
         dict(ax=xd, ay=0, axref="x", ayref="y",
-             x=xd,  y=H,  xref="x",  yref="y",
+             x=xd, y=H, xref="x", yref="y",
              arrowhead=2, arrowside="end+start",
-             arrowcolor="#999", arrowwidth=1.2,
+             arrowcolor="#AAAAAA", arrowwidth=1.2,
              showarrow=True, text=""),
-        dict(x=xd+0.25, y=H/2,
-             text=f"L = {L_m:.2f} m",
+        dict(x=xd+0.3, y=H/2,
+             text=f"L = {L_m:.2f} m<br>Kx={rv['Kx']}  Ky={rv['Ky']}",
              xanchor="left", yanchor="middle", textangle=90,
-             showarrow=False, font=dict(size=9, color="#777")),
+             showarrow=False, font=dict(size=8, color="#888"))
     ]
 
-    # ── 6. Section label inside column ───────────────────────────────────────
+    # ── 6. Sign convention legend ─────────────────────────────────────────────
     annotations.append(dict(
-        x=0, y=H/2,
-        text=f"<b>{rv['sn']}</b><br>"
-             f"d={d_mm} mm  bf={bf_mm} mm<br>"
-             f"Kx={rv['Kx']}  Ky={rv['Ky']}",
-        xanchor="center", yanchor="middle",
-        showarrow=False,
-        font=dict(size=10, color="#1A3A5C"),
-        bgcolor="rgba(255,255,255,0.75)",
-        bordercolor="#1A3A5C", borderwidth=1,
-        borderpad=4))
-
-    # ── 7. Sign convention note ──────────────────────────────────────────────
-    sign_note = "double curvature (+)" if k >= 0 else "single curvature (−)"
-    annotations.append(dict(
-        x=0, y=-ext_cf*1.6,
-        text=f"k = {k:.2f}  →  {sign_note}",
+        x=0, y=-ext*1.7,
+        text=("<b>Convention :</b>  + = CCW (↺)   − = CW (↻)<br>"
+              "κ = Mf1/Mf2 &gt; 0 → double courbure (ω1 réduit)"),
         xanchor="center", yanchor="top",
-        showarrow=False, font=dict(size=9, color="#888")))
+        showarrow=False, font=dict(size=8, color="#666")))
 
-    # ── layout ───────────────────────────────────────────────────────────────
-    pad_x = W * 7.5
-    pad_y_bot = ext_cf * 2.2
-    pad_y_top = ext_cf * 2.2
-
+    # ── Layout ────────────────────────────────────────────────────────────────
+    pad_x  = W + 2*R + 3.5
+    pad_yb = ext * 2.4
+    pad_yt = ext * 2.4
     fig = go.Figure()
     fig.add_trace(go.Scatter(
-        x=[-pad_x, pad_x],
-        y=[-pad_y_bot, H + pad_y_top],
+        x=[-pad_x, pad_x], y=[-pad_yb, H+pad_yt],
         mode="markers", marker=dict(opacity=0, size=1)))
     fig.update_layout(
         shapes=shapes, annotations=annotations,
@@ -1394,42 +1425,79 @@ with st.sidebar:
         f'tf = <b>{s["tf"]} mm</b>  |  tw = <b>{s["tw"]} mm</b></div>',
         unsafe_allow_html=True)
 
-    st.markdown("### Factored loads")
+    st.markdown("### Charge axiale")
     max_Cf   = max(100, int(0.9*s["A"]*s["Fy"]/1e3/50)*50)
-    max_Mrx  = max(50,  int(0.9*s["Zx"]*s["Fy"]/1e6/10)*10)
-    max_Mry  = max(10,  int(0.9*s["Zy"]*s["Fy"]/1e6/5)*5)
     Cf_kN   = st.slider("Cf  (kN)", 50.0, float(max_Cf),
                          min(2000.0, max_Cf*.45), 25.0,
-                         help="Factored axial compression force")
-    Mfx_kNm = st.slider("Mfx (kN·m)", 0.0, float(max_Mrx),
-                         min(300.0, max_Mrx*.45), 10.0,
-                         help="Factored strong-axis bending moment")
-    Mfy_kNm = st.slider("Mfy (kN·m)", 0.0, float(max_Mry),
-                         0.0, max(1.0, float(max_Mry)//50),
-                         help="Factored weak-axis bending moment (biaxial loading)")
-    if Mfy_kNm > 0:
-        st.markdown(
-            f'<div class="ibox">⚡ <b>Biaxial bending active</b><br>'
-            f'Mfx = {Mfx_kNm:.1f} kN·m (strong)  +  '
-            f'Mfy = {Mfy_kNm:.1f} kN·m (weak)<br>'
-            f'Max Mry = φ·Zy·Fy = {max_Mry:.0f} kN·m</div>',
-            unsafe_allow_html=True)
+                         help="Force de compression axiale pondérée")
 
     st.markdown("### Geometry")
     L_mm = st.slider("L  (mm)", 1000.0, 15000.0, 3700.0, 100.0)
     Kx   = st.select_slider("Kx", [0.5,0.65,0.7,1.0,1.2,1.5,2.0], value=1.0)
     Ky   = st.select_slider("Ky", [0.5,0.65,0.7,1.0,1.2,1.5,2.0], value=1.0)
 
-    st.markdown("### Paramètres de moment  [HSC 13.8.5]")
-    k_ratio = st.slider("κ = Mf1/Mf2  (axe fort)", -1.0, 1.0, 0.67, 0.01,
-        help="+1 = double courbure (meilleur cas)  |  −1 = courbure simple (pire cas)\n"
-             "ω1x = 0.6 − 0.4·κ ≥ 0.4")
-    kwy_ratio = st.slider("κy = Mf1/Mf2  (axe faible)", -1.0, 1.0, 0.67, 0.01,
-        help="Rapport de moments pour l'axe faible — utilisé pour ω1y et U1y")
+    st.markdown("### Diagramme de moment  [HSC 13.8.5]")
+    st.markdown("""<div style="font-size:.75rem;color:#94A3B8;line-height:1.6;
+                               background:rgba(255,255,255,.06);border-radius:8px;
+                               padding:8px 12px;margin-bottom:8px">
+<b style="color:#60A5FA">Convention de signe :</b><br>
+Mf2 = moment à l'extrémité <b>plus chargée</b> (toujours &gt; 0 ici)<br>
+Mf1 = moment à l'autre extrémité (même sens → négatif → double courbure)<br>
+κ = Mf1/Mf2 &nbsp;→&nbsp; <b>κ &gt; 0</b> = double courbure ✓ (Mf1 et Mf2 de même signe)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>κ &lt; 0</b> = courbure simple  (Mf1 et Mf2 de signes opposés)<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>κ = 0</b> = moment nul à une extrémité<br>
+ω1 = 0.6 − 0.4·κ &nbsp;≥&nbsp; 0.4  [HSC 13.8.5]
+</div>""", unsafe_allow_html=True)
+
+    # Mf2 is the larger-end moment (always positive reference)
+    # Mf1 is the other-end moment — can be negative (single curv) or positive (double curv)
+    # κ = Mf1/Mf2  is computed automatically
+    max_Mfx_val = max(50.0, float(int(0.9*s["Zx"]*s["Fy"]/1e6/10)*10))
+    Mf2x = st.slider("Mf2  axe fort (kN·m)  [extrémité max]",
+                     10.0, max_Mfx_val, min(300.0, max_Mfx_val*0.45), 10.0,
+                     help="Moment à l'extrémité la plus sollicitée (valeur de référence, toujours positif)")
+    Mf1x = st.slider("Mf1  axe fort (kN·m)  [autre extrémité]",
+                     -max_Mfx_val, max_Mfx_val, Mf2x*0.67, 10.0,
+                     help="Même signe que Mf2 → double courbure κ>0 (favorable)\n"
+                          "Signe opposé → courbure simple κ<0 (défavorable)")
+    # κ = Mf1/Mf2 — clamp to [-1, 1], ensure |Mf1| ≤ |Mf2|
+    k_ratio = max(-1.0, min(1.0, Mf1x / Mf2x)) if abs(Mf2x) > 0 else 0.0
+
+    # Visual indicator
+    if k_ratio > 0.0:
+        curv_note = f"κ = {Mf1x:.0f}/{Mf2x:.0f} = <b>{k_ratio:.3f}</b> &nbsp;→&nbsp; ✅ Double courbure (ω1 = {max(0.6-0.4*k_ratio,0.4):.3f} ≤ 1)"
+        curv_col  = "#22C55E"
+    elif k_ratio < 0.0:
+        curv_note = f"κ = {Mf1x:.0f}/{Mf2x:.0f} = <b>{k_ratio:.3f}</b> &nbsp;→&nbsp; ⚠️ Courbure simple (ω1 = {max(0.6-0.4*k_ratio,0.4):.3f} = max)"
+        curv_col  = "#F59E0B"
+    else:
+        curv_note = f"κ = 0 &nbsp;→&nbsp; Moment nul à une extrémité (ω1 = 0.6)"
+        curv_col  = "#60A5FA"
+    st.markdown(f'<div style="font-size:.8rem;color:{curv_col};font-weight:600;'
+                f'background:rgba(255,255,255,.07);border-radius:6px;padding:5px 10px;'
+                f'margin-bottom:4px">{curv_note}</div>', unsafe_allow_html=True)
+
+    max_Mfy_val = max(10.0, float(int(0.9*s["Zy"]*s["Fy"]/1e6/5)*5))
+    Mf2y = st.slider("Mf2  axe faible (kN·m)  [extrémité max]",
+                     0.0, max_Mfy_val, 0.0, max(1.0, float(max_Mfy_val)//50),
+                     help="Moment axe faible à l'extrémité max (biaxiale)")
+    Mf1y = st.slider("Mf1  axe faible (kN·m)  [autre extrémité]",
+                     -max_Mfy_val, max_Mfy_val, 0.0, max(1.0, float(max_Mfy_val)//50),
+                     help="Même signe → double courbure  |  Signe opposé → courbure simple")
+    kwy_ratio = max(-1.0, min(1.0, Mf1y / Mf2y)) if abs(Mf2y) > 0 else 0.0
+    if Mf2y > 0:
+        st.markdown(f'<div style="font-size:.78rem;color:#94A3B8;padding:3px 10px">'
+                    f'κy = {Mf1y:.0f}/{Mf2y:.0f} = <b>{kwy_ratio:.3f}</b></div>',
+                    unsafe_allow_html=True)
+
+    # Mfx_kNm and Mfy_kNm for compute = Mf2 (the governing end moment)
+    Mfx_kNm = Mf2x
+    Mfy_kNm = Mf2y
+
     omega2 = st.slider("ω₂  (gradient LTB, axe fort)", 0.6, 2.5, 1.0, 0.05,
         help="Facteur de gradient de moment pour le déversement [HSC 13.6]\n"
              "1.0 = moment uniforme (conservateur)\n"
-             "Calculé : 1.75 + 1.05κ + 0.3κ² ≤ 2.5")
+             "1.75 + 1.05κ + 0.3κ² ≤ 2.5 (calculé manuellement)")
 
     st.markdown("### Contreventement et U2  [HSC 13.8.4]")
     braced_choice = st.radio("Type de structure",
@@ -1479,6 +1547,11 @@ rv = compute(sn, Cf_kN, Mfx_kNm, Mfy_kNm, L_mm,
              Kx=Kx, Ky=Ky, k=k_ratio, kwy=kwy_ratio,
              om2=omega2, braced=braced, U2=U2_val,
              sec_type=sec_type)
+# Store Mf1 values for member diagram
+rv["Mf1x"] = Mf1x * 1e6   # N·mm
+rv["Mf1y"] = Mf1y * 1e6
+rv["Mf2x"] = Mf2x * 1e6
+rv["Mf2y"] = Mf2y * 1e6
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  HEADER  &  KPI STRIP
