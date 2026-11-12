@@ -1586,10 +1586,12 @@ with t0:
             st.markdown(f"| **{nm}** | {val} | {un} | {desc} |")
 
     st.markdown("### Computed section capacities")
+    _mrx_lbl = "Mrx = φ·Zx·Fy" if rv['cls']<=2 else "Mrx = φ·Sx·Fy"
+    _mrx_mod = f"{rv['Zx']/1e3:.0f}" if rv['cls']<=2 else f"{rv['Sx']/1e3:.0f}"
     st.markdown(f"""<div class="fbox">
 <b>Résistances de la section  [HSC 13.5]</b><br>
 φCy = φ·A·Fy = {rv['phi']}×{rv['A']:,}×{rv['Fy']} = <b>{rv['pCy']/1e3:.1f} kN</b>  (charge d'écrasement, sans flambement)<br>
-{'Mrx = φ·Zx·Fy' if rv['cls']<=2 else 'Mrx = φ·Sx·Fy'} = {rv['phi']}×{rv['Zx']/1e3:.0f if rv['cls']<=2 else rv['Sx']/1e3:.0f}×10³×{rv['Fy']} = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>  (Classe {rv['cls']})<br>
+{_mrx_lbl} = {rv['phi']}×{_mrx_mod}×10³×{rv['Fy']} = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>  (Classe {rv['cls']})<br>
 Mry = φ·Zy·Fy = {rv['phi']}×{rv['Zy']/1e3:.0f}×10³×{rv['Fy']} = <b>{rv['Mry_s']/1e6:.1f} kN·m</b>  (axe faible, sans déversement)<br><br>
 <b>Forces d'Euler critiques  [HSC 13.8.4]</b><br>
 Cex = π²·E·A/(KLx/rx)² = π²×{rv['E']:.0f}×{rv['A']:,}/{rv['KLx_rx']:.1f}² = <b>{rv['Cex']/1e3:.1f} kN</b><br>
