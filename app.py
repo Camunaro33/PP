@@ -228,7 +228,7 @@ if not st.session_state["accepted"]:
     <div style="margin-top:12px;display:inline-block;background:rgba(255,255,255,.15);
                 border-radius:20px;padding:4px 16px;font-size:.8rem;color:#E0F2FE;
                 border:1px solid rgba(255,255,255,.25)">
-      Outil pédagogique — Vérification d'une pièce poteau-poutre — CSA S16-24 Cl. 13
+      Outil pédagogique — Vérification d'un poteau-poutre en acier — CSA S16-24 Cl. 13
     </div>
   </div>
   <div class="disc-gate-body">
@@ -1036,16 +1036,16 @@ def member_fig(rv):
         rot_str  = "↺ CCW (+)" if positive else "↻ CW (−)"
         x_lbl = cx + R + 0.2 if label_right else cx - R - 0.2
         anc   = "left" if label_right else "right"
-        annotations += [
-            dict(x=x_lbl, y=cy + R*0.1,
-                 text=f"<b>{sign_str}{abs(Mval):.0f} kN·m</b>",
-                 xanchor=anc, yanchor="bottom",
-                 showarrow=False, font=dict(size=11, color=color)),
-            dict(x=x_lbl, y=cy - R*0.1,
-                 text=rot_str,
-                 xanchor=anc, yanchor="top",
-                 showarrow=False, font=dict(size=9, color=color)),
-        ]
+        annotations.append(dict(
+            x=x_lbl, y=cy + R*0.1,
+            text=f"<b>{sign_str}{abs(Mval):.0f} kN·m</b>",
+            xanchor=anc, yanchor="bottom",
+            showarrow=False, font=dict(size=11, color=color)))
+        annotations.append(dict(
+            x=x_lbl, y=cy - R*0.1,
+            text=rot_str,
+            xanchor=anc, yanchor="top",
+            showarrow=False, font=dict(size=9, color=color)))
 
     # ── 1. Column body ───────────────────────────────────────────────────────
     shapes.append(dict(type="rect", x0=-W, y0=0, x1=W, y1=H,
@@ -1400,7 +1400,7 @@ with st.sidebar:
   </div>
   <div style="margin-top:8px;background:rgba(255,255,255,.12);border-radius:8px;
               padding:4px 10px;font-size:.72rem;color:#BAD4F5;border:1px solid rgba(255,255,255,.2)">
-    Poteau-poutre · CSA S16-24 Cl. 13
+    Poteau-poutre en acier · CSA S16-24 Cl. 13
   </div>
 </div>
 """, unsafe_allow_html=True)
@@ -1554,7 +1554,7 @@ st.markdown("""
   <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
     <div>
       <div style="font-size:1.55rem;font-weight:800;color:white;line-height:1.2;letter-spacing:-.01em">
-        🏗️ Vérification d'une pièce poteau-poutre
+        🏗️ Vérification d'un poteau-poutre en acier
       </div>
       <div style="font-size:.95rem;color:#93C5FD;margin-top:3px;font-weight:500">
         CSA S16-24 Cl. 13 &nbsp;·&nbsp; CISC HSC T1 · T2 · T3
