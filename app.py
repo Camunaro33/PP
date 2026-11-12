@@ -14,35 +14,194 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 st.markdown("""<style>
-.main{background:#fff}
-.block-container{padding-top:1.2rem;padding-bottom:1.5rem}
-h1{color:#1565C0;font-size:1.6rem;font-weight:700}
-h2{color:#1565C0;font-size:1.05rem;font-weight:600;border-bottom:2px solid #1565C0;padding-bottom:3px;margin-top:1.1rem}
-.fbox{background:#EBF0F8;border-left:5px solid #1565C0;padding:10px 14px;border-radius:5px;
-      font-family:monospace;font-size:.86rem;color:#111;line-height:1.9;margin:7px 0}
-.rok{background:#D4EDDA;border-left:5px solid #1B7E34;padding:9px 14px;border-radius:5px;
-     font-weight:700;font-size:1rem;color:#1B7E34;margin:7px 0}
-.rwarn{background:#FFF3CD;border-left:5px solid #8A5700;padding:9px 14px;border-radius:5px;
-       font-weight:700;font-size:1rem;color:#8A5700;margin:7px 0}
-.rfail{background:#FCDEDE;border-left:5px solid #B71C1C;padding:9px 14px;border-radius:5px;
-       font-weight:700;font-size:1rem;color:#B71C1C;margin:7px 0}
-.kpi{background:#F7F9FC;border:1px solid #AABCCC;border-radius:7px;padding:10px 12px;text-align:center}
-.kpi-l{font-size:.73rem;color:#555;margin-bottom:1px}
-.kpi-v{font-size:1.2rem;font-weight:700;color:#1565C0}
-.ibox{background:#E6F1FB;border:1px solid #B5D4F4;padding:8px 12px;border-radius:5px;
-      font-size:.83rem;color:#333;margin:6px 0}
-/* disclaimer gate */
-.disc-gate{background:#FFF8E1;border:2.5px solid #F57F17;border-radius:12px;
-           padding:28px 32px;max-width:780px;margin:60px auto 0 auto}
-.disc-gate h2{color:#B71C1C;font-size:1.25rem;border:none;margin-top:0;padding-bottom:0}
-.disc-gate p{color:#333;font-size:.93rem;line-height:1.75}
-.disc-gate ul{color:#333;font-size:.91rem;line-height:1.9;margin:0 0 12px 0;padding-left:1.3em}
-.disc-gate .sign{font-size:.82rem;color:#666;border-top:1px solid #EEE;
-                 padding-top:10px;margin-top:16px}
-/* persistent top banner */
-.edu-banner{background:#FFF3CD;border:1.5px solid #F57F17;border-radius:6px;
-            padding:7px 14px;font-size:.82rem;color:#7B3F00;margin-bottom:10px;
-            display:flex;align-items:center;gap:8px}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── Global ────────────────────────────────────────────────────────────── */
+html, body, [class*="css"] { font-family: 'Inter', sans-serif !important; }
+.main { background: #F4F7FB; }
+.block-container { padding-top: 0 !important; padding-bottom: 2rem !important;
+                   max-width: 1400px !important; }
+section[data-testid="stSidebar"] { background: #0D1F3C !important; }
+section[data-testid="stSidebar"] * { color: #CBD5E1 !important; }
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stSlider label,
+section[data-testid="stSidebar"] .stRadio label,
+section[data-testid="stSidebar"] h3,
+section[data-testid="stSidebar"] .stMarkdown p { color: #94A3B8 !important; font-size:.82rem !important; }
+section[data-testid="stSidebar"] strong { color: #E2E8F0 !important; }
+section[data-testid="stSidebar"] .stSelectbox div[data-baseweb="select"] > div {
+    background: #1E3A5F !important; border-color: #334E6F !important; color: #E2E8F0 !important; }
+section[data-testid="stSidebar"] hr { border-color: #1E3A5F !important; }
+
+/* ── Tab bar ───────────────────────────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    background: white;
+    border-radius: 12px 12px 0 0;
+    padding: 6px 10px 0;
+    border-bottom: 2px solid #1565C0;
+    gap: 4px;
+}
+.stTabs [data-baseweb="tab"] {
+    background: #EEF2FF;
+    border-radius: 8px 8px 0 0;
+    padding: 8px 16px;
+    font-size: .82rem;
+    font-weight: 600;
+    color: #475569;
+    border: 1px solid #CBD5E1;
+    border-bottom: none;
+}
+.stTabs [aria-selected="true"] {
+    background: #1565C0 !important;
+    color: white !important;
+    border-color: #1565C0 !important;
+}
+.stTabs [data-baseweb="tab-panel"] {
+    background: white;
+    border-radius: 0 0 12px 12px;
+    padding: 20px 24px;
+    border: 1px solid #E2E8F0;
+    border-top: none;
+}
+
+/* ── KPI cards ─────────────────────────────────────────────────────────── */
+.kpi {
+    background: white;
+    border-radius: 12px;
+    padding: 14px 10px 12px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,.07);
+    border-top: 4px solid #1565C0;
+    transition: transform .15s;
+}
+.kpi:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,.12); }
+.kpi-l { font-size: .68rem; color: #64748B; font-weight: 600;
+          text-transform: uppercase; letter-spacing: .06em; margin-bottom: 4px; }
+.kpi-v { font-size: 1.35rem; font-weight: 800; color: #1565C0; line-height: 1.1; }
+
+/* ── Formula box ───────────────────────────────────────────────────────── */
+.fbox {
+    background: #F8FAFF;
+    border-left: 5px solid #1565C0;
+    border-radius: 0 10px 10px 0;
+    padding: 14px 18px;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: .82rem;
+    color: #1E293B;
+    line-height: 2.0;
+    margin: 10px 0;
+    box-shadow: 0 2px 6px rgba(21,101,192,.08);
+}
+
+/* ── Result boxes ──────────────────────────────────────────────────────── */
+.rok {
+    background: linear-gradient(135deg, #DCFCE7, #F0FDF4);
+    border-left: 6px solid #16A34A;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #15803D;
+    margin: 10px 0;
+    box-shadow: 0 2px 8px rgba(22,163,74,.12);
+}
+.rwarn {
+    background: linear-gradient(135deg, #FFFBEB, #FEF9C3);
+    border-left: 6px solid #D97706;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #92400E;
+    margin: 10px 0;
+    box-shadow: 0 2px 8px rgba(217,119,6,.12);
+}
+.rfail {
+    background: linear-gradient(135deg, #FEF2F2, #FFE4E6);
+    border-left: 6px solid #DC2626;
+    border-radius: 0 10px 10px 0;
+    padding: 12px 18px;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: #991B1B;
+    margin: 10px 0;
+    box-shadow: 0 2px 8px rgba(220,38,38,.12);
+}
+
+/* ── Info box ──────────────────────────────────────────────────────────── */
+.ibox {
+    background: linear-gradient(135deg, #EFF6FF, #DBEAFE);
+    border: 1px solid #93C5FD;
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: .85rem;
+    color: #1E3A5F;
+    margin: 8px 0;
+    line-height: 1.6;
+}
+
+/* ── Section heading ───────────────────────────────────────────────────── */
+h2 {
+    color: #0F172A !important;
+    font-size: 1.1rem !important;
+    font-weight: 700 !important;
+    padding-bottom: 6px !important;
+    margin-top: 0 !important;
+    border-bottom: 2px solid #1565C0 !important;
+}
+
+/* ── Disclaimer gate ───────────────────────────────────────────────────── */
+.disc-gate {
+    background: white;
+    border-radius: 20px;
+    padding: 0;
+    max-width: 820px;
+    margin: 40px auto 0;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,.15);
+}
+.disc-gate-header {
+    background: linear-gradient(135deg, #0D1F3C 0%, #1565C0 100%);
+    padding: 32px 36px 28px;
+    text-align: center;
+}
+.disc-gate-body {
+    padding: 28px 36px 32px;
+}
+.disc-gate h2 {
+    color: #DC2626 !important;
+    font-size: 1.15rem !important;
+    border-bottom: none !important;
+    margin: 0 0 10px !important;
+}
+.disc-gate p { color: #374151; font-size: .92rem; line-height: 1.7; }
+.disc-gate ul { color: #374151; font-size: .90rem; line-height: 1.85;
+                margin: 0 0 14px; padding-left: 1.4em; }
+.disc-gate .sign {
+    font-size: .80rem; color: #6B7280;
+    border-top: 1px solid #E5E7EB;
+    padding-top: 12px; margin-top: 18px;
+}
+
+/* ── Edu banner ────────────────────────────────────────────────────────── */
+.edu-banner {
+    background: linear-gradient(135deg, #FFFBEB, #FEF3C7);
+    border: 1.5px solid #FCD34D;
+    border-radius: 10px;
+    padding: 8px 16px;
+    font-size: .82rem;
+    color: #78350F;
+    margin-bottom: 12px;
+}
+
+/* ── App header ────────────────────────────────────────────────────────── */
+.app-header {
+    background: linear-gradient(135deg, #0D1F3C 0%, #1565C0 60%, #1976D2 100%);
+    border-radius: 0 0 16px 16px;
+    padding: 20px 28px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 20px rgba(21,101,192,.25);
+}
 </style>""", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -55,22 +214,24 @@ if "accepted" not in st.session_state:
 if not st.session_state["accepted"]:
     st.markdown("""
 <div class="disc-gate">
-
-  <!-- Course & author header -->
-  <div style="text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid #E0C860">
-    <div style="font-size:1.35rem;font-weight:800;color:#1565C0;letter-spacing:.03em">
-      🏗️ GCI 2011 — Conception de Structures I
+  <div class="disc-gate-header">
+    <div style="font-size:2.8rem;margin-bottom:8px">🏗️</div>
+    <div style="font-size:1.5rem;font-weight:800;color:white;letter-spacing:.02em;margin-bottom:6px">
+      GCI 2011 — Conception de Structures I
     </div>
-    <div style="font-size:1.0rem;color:#333;margin-top:4px">
-      <strong>Université Laval</strong> — Département de génie civil et de génie des eaux
+    <div style="font-size:1.0rem;color:#93C5FD;margin-bottom:3px">
+      Université Laval &nbsp;·&nbsp; Département de génie civil et de génie des eaux
     </div>
-    <div style="font-size:.92rem;color:#555;margin-top:3px">
-      Professeur : <strong>Luca Sorelli</strong>, ing., Ph.D.
+    <div style="font-size:.92rem;color:#BAD4F5">
+      Professeur : <strong style="color:white">Luca Sorelli</strong>, ing., Ph.D.
     </div>
-    <div style="font-size:.82rem;color:#888;margin-top:2px">
-      Beam-Column Design Tool — CSA S16-24 Cl. 13
+    <div style="margin-top:12px;display:inline-block;background:rgba(255,255,255,.15);
+                border-radius:20px;padding:4px 16px;font-size:.8rem;color:#E0F2FE;
+                border:1px solid rgba(255,255,255,.25)">
+      Outil pédagogique — Vérification d'une pièce poteau-poutre — CSA S16-24 Cl. 13
     </div>
   </div>
+  <div class="disc-gate-body">
 
   <h2>⚠️  Educational Use Only — Disclaimer &amp; Terms of Use</h2>
   <p><strong>Please read carefully before proceeding. You must accept these terms to access this tool.</strong></p>
@@ -110,9 +271,10 @@ if not st.session_state["accepted"]:
   <div class="sign">
     GCI 2011 — Conception de Structures I &nbsp;|&nbsp; Université Laval &nbsp;|&nbsp;
     Prof. Luca Sorelli, ing., Ph.D.<br>
-    Reference: CSA S16-24 Cl. 13 &nbsp;|&nbsp; CISC HSC 13th ed. &nbsp;|&nbsp;
+    Référence : CSA S16-24 Cl. 13 &nbsp;|&nbsp; CISC HSC 13th éd. &nbsp;|&nbsp;
     φ = 0.90 &nbsp;|&nbsp; n = 1.34
   </div>
+  </div><!-- end disc-gate-body -->
 </div>
 """, unsafe_allow_html=True)
 
@@ -318,79 +480,345 @@ FAMILIES = {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════════
-#  DESIGN  (CSA S16-24 Cl. 13)
+#  DESIGN EQUATIONS  —  CSA S16-24 / CISC HSC 13th ed.
+#
+#  PARAMETER EXPLANATION
+#  ──────────────────────
+#  k      : moment ratio κ = Mf1/Mf2  (|Mf1| ≤ |Mf2|)
+#            +1 = double curvature (best case)   −1 = single curvature (worst case)
+#            Used to compute ω1  [HSC 13.8.5]
+#
+#  ω1     : equivalent uniform moment factor  [HSC 13.8.5]
+#            ω1 = 0.6 − 0.4·κ  ≥ 0.4
+#            Accounts for moment gradient along the member.
+#            Smaller ω1 → smaller amplification → less conservative.
+#
+#  U1x/U1y: moment amplification factor for P-δ (member bow)  [HSC 13.8.4]
+#            U1 = ω1 / (1 − Cf/Ce)  applied to Mfx or Mfy
+#            — For BRACED members:   U1x ≥ 0  (Step 3a, no LTB check)
+#                                    U1x ≥ 1  (Step 2 section check)
+#                                    U1x ≥ 1  (Step 3b, with LTB — to avoid
+#                                               double-counting P-δ already in Mu)
+#            — For UNBRACED members: U1x = U1y = 1.0
+#              (P-Δ sway effect already included in Mf via U2·Mf analysis)
+#
+#  U2     : storey sway amplification factor  [HSC 13.8.4 / Cl.8.7]
+#            Accounts for P-Δ (storey drift) in UNBRACED frames.
+#            The user must supply U2·Mf2 as the applied moment Mf when unbraced.
+#            U2 ≥ 1 / (1 − ΣCf / ΣCe_storey)   (computed by sway analysis)
+#            In this tool: for UNBRACED, U1=1 and the user enters Mf already
+#            amplified by U2.  A reminder is shown on screen.
+#
+#  β      : biaxial interaction factor  [HSC 13.8.2]
+#            β = 0.6 + 0.4·λ̄y  ≤ 0.85
+#            λ̄y = reduced slenderness for weak axis
+#            For cross-section check (Step 2): β = 0.6 (fixed, λ̄y not needed)
+#
+#  n      : Perry-Robertson exponent  [HSC 13.3.1]
+#            n = 1.34 for hot-rolled W shapes (Class 1–3)
+#            n = 2.24 for welded (WWF) sections
+#
+#  Cex/Cey: elastic Euler critical force for strong / weak axis  [HSC 13.8.4]
+#            Ce = π²·E·A / (KL/r)²
+#            Used in U1 calculation for each axis independently.
 # ═══════════════════════════════════════════════════════════════════════════════
-def fl_lims(Fy): s=math.sqrt(Fy); return {1:145/s,2:170/s,3:200/s}
-def wb_lims(Fy,Cf,pCy):
-    s=math.sqrt(Fy); r=min(Cf/pCy, 1.0)
-    return {1:(1100/s)*(1-.391*r),2:(1700/s)*(1-.391*r),3:1900/s}
-def classify(v,lm):
+
+def fl_lims(Fy):
+    # Flange slenderness limits  [CSA S16-24 Table 4.1]
+    s = math.sqrt(Fy)
+    return {1: 145/s, 2: 170/s, 3: 200/s}
+
+def wb_lims(Fy, Cf, pCy):
+    # Web slenderness limits for beam-columns  [CSA S16-24 Table 4.2]
+    # Limit depends on Cf/φCy: higher axial → tighter web limit
+    s = math.sqrt(Fy)
+    r = min(Cf/pCy, 1.0)
+    return {1: (1100/s)*(1-0.391*r),
+            2: (1700/s)*(1-0.391*r),
+            3:  1900/s}
+
+def classify(v, lm):
+    # Return section class (1–4) for a given slenderness ratio and limits dict
     for c in [1,2,3]:
-        if v<=lm[c]: return c
+        if v <= lm[c]: return c
     return 4
-def col_cr(phi,A,Fy,KLr,E=200000,n=1.34):
-    Fe=math.pi**2*E/KLr**2; lam=math.sqrt(Fy/Fe)
-    return phi*A*Fy*(1+lam**(2*n))**(-1/n), lam, Fe
-def w1(k): return max(.6-.4*k,.4)
-def U1_f(w,Cf,Cex): return max(w/(1-Cf/Cex),0.0)
-def beta(ly): return min(.6+.4*ly,.85)
-def Mr_sect(phi,Zx,Sx,Fy,cls): return phi*Zx*Fy if cls<=2 else phi*Sx*Fy
-def LTB_Mu(E,G,Iy,J,Cw,L):
-    return (math.pi/L)*math.sqrt(E*Iy*G*J+(math.pi*E/L)**2*Iy*Cw)
-def Mr_ltb_calc(phi,Zx,Sx,Fy,Mu):
-    Mp=Fy*Zx
-    if Mu>=.67*Mp: return phi*min(1.15*Mp*(1-.28*Mp/Mu),Mp)
-    return phi*Mu
+
+def col_cr(phi, A, Fy, KLr, E=200000, n=1.34):
+    """
+    Factored compressive resistance  Cr  [HSC 13.3.1]
+    Cr = φ·A·Fy·(1 + λ̄^(2n))^(-1/n)
+    n = 1.34  hot-rolled W shapes
+    n = 2.24  welded WWF sections
+    λ̄ = √(Fy/Fe)  reduced slenderness
+    Fe = π²·E / (KL/r)²  Euler elastic critical stress
+    """
+    Fe  = math.pi**2 * E / KLr**2
+    lam = math.sqrt(Fy / Fe)
+    Cr  = phi * A * Fy * (1 + lam**(2*n))**(-1/n)
+    return Cr, lam, Fe
+
+def omega1(k):
+    """
+    Equivalent uniform moment factor ω1  [HSC 13.8.5]
+    For no lateral loads between supports:  ω1 = 0.6 − 0.4·κ  ≥ 0.4
+    κ = Mf1/Mf2  (+1 = double curvature, −1 = single curvature)
+    """
+    return max(0.6 - 0.4*k, 0.4)
+
+def U1_calc(w1_val, Cf, Ce):
+    """
+    Moment amplification factor U1  [HSC 13.8.4]
+    U1 = ω1 / (1 − Cf/Ce)
+    — Accounts for P-δ (member bow) effect
+    — Applied independently to Mfx (using Cex) and Mfy (using Cey)
+    — For BRACED frame: U1 ≥ 0 for Step 3a (no LTB),
+                         U1 ≥ 1 for Step 2 (section) and Step 3b (with LTB)
+    — For UNBRACED frame: U1x = U1y = 1.0
+      (P-Δ sway already in Mf via U2 analysis — do not double-count)
+    """
+    return max(w1_val / (1 - Cf/Ce), 0.0)
+
+def beta_biaxial(ly):
+    """
+    Biaxial interaction factor β  [HSC 13.8.2]
+    β = 0.6 + 0.4·λ̄y  ≤ 0.85
+    For cross-section check (Step 2): β = 0.6 (fixed, independent of λ̄y)
+    """
+    return min(0.6 + 0.4*ly, 0.85)
+
+def Mr_section(phi, Zx, Sx, Fy, cls):
+    """
+    Factored bending resistance of the cross-section  [HSC 13.5]
+    Class 1 & 2 → Mr = φ·Zx·Fy  (plastic moment)
+    Class 3     → Mr = φ·Sx·Fy  (elastic moment)
+    """
+    return phi*Zx*Fy if cls <= 2 else phi*Sx*Fy
+
+def LTB_Mu(E, G, Iy, J, Cw, L):
+    """
+    Elastic LTB critical moment Mu  [HSC 13.6]
+    Mu = (ω2·π/Ls)·√(E·Iy·G·J + (π·E/Ls)²·Iy·Cw)
+    ω2 applied outside this function.
+    """
+    return (math.pi/L) * math.sqrt(E*Iy*G*J + (math.pi*E/L)**2 * Iy*Cw)
+
+def Mr_ltb_calc(phi, Zx, Sx, Fy, Mu_eff):
+    """
+    Factored bending resistance with LTB  [HSC 13.6]
+    If Mu ≥ 0.67·Mp:  Mr = φ·min(1.15·Mp·(1 − 0.28·Mp/Mu),  Mp)
+    If Mu < 0.67·Mp:  Mr = φ·Mu  (elastic LTB governs)
+    """
+    Mp = Fy * Zx
+    if Mu_eff >= 0.67*Mp:
+        return phi * min(1.15*Mp*(1 - 0.28*Mp/Mu_eff), Mp)
+    return phi * Mu_eff
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 def compute(sn, Cf_kN, Mfx_kNm, Mfy_kNm, L_mm,
-            Kx=1.0, Ky=1.0, k=0.67, om2=1.0, E=200000, G=77000, phi=0.9):
-    s=SECTIONS[sn]
-    Cf=Cf_kN*1e3; Mfx=Mfx_kNm*1e6; Mfy=Mfy_kNm*1e6
+            Kx=1.0, Ky=1.0, k=0.67, kwy=0.67,
+            om2=1.0, braced=True, U2=1.0,
+            sec_type="hot-rolled",
+            E=200000, G=77000, phi=0.9):
+    """
+    Full beam-column verification per CSA S16-24 Cl. 13.
+
+    Parameters
+    ----------
+    k       : κ = Mf1/Mf2 for STRONG axis  (+1=double curv, −1=single curv)
+    kwy     : κ = Mf1/Mf2 for WEAK axis    (same convention)
+    om2     : LTB moment gradient factor ω2  [HSC 13.6]
+    braced  : True  = braced frame  → U1 computed, U2 not applicable
+              False = unbraced frame → U1x=U1y=1.0, user enters U2·Mf
+    U2      : Storey sway amplification  [HSC 8.7]
+              Only used when braced=False; Mfx is multiplied by U2 before checks.
+    sec_type: 'hot-rolled' → n=1.34   |   'welded' → n=2.24  [HSC 13.3.1]
+    """
+    s   = SECTIONS[sn]
+    n   = 1.34 if sec_type == "hot-rolled" else 2.24
+
+    # ── Applied forces (apply U2 amplification for unbraced frames) ──────────
+    # For UNBRACED frames, the engineer must amplify moments by U2 to account
+    # for the P-Δ (storey sway) effect.  U1 is then set to 1.0.  [HSC 13.8.4]
+    Cf  = Cf_kN  * 1e3
+    if braced:
+        Mfx = Mfx_kNm * 1e6   # no U2 for braced
+        Mfy = Mfy_kNm * 1e6
+    else:
+        Mfx = Mfx_kNm * 1e6 * U2   # U2·Mf for unbraced sway moments
+        Mfy = Mfy_kNm * 1e6 * U2
+
     A,d,bf,tf,tw = s["A"],s["d"],s["bf"],s["tf"],s["tw"]
-    Zx,Sx,rx = s["Zx"],s["Sx"],s["rx"]
-    Zy,Sy,ry = s["Zy"],s["Sy"],s["ry"]
+    Zx,Sx,rx     = s["Zx"],s["Sx"],s["rx"]
+    Zy,Sy,ry     = s["Zy"],s["Sy"],s["ry"]
     Iy,J,Cw,Lu,Fy,h = s["Iy"],s["J"],s["Cw"],s["Lu"],s["Fy"],s["h"]
 
-    pCy=phi*A*Fy; b2tf=(bf/2)/tf; htw=h/tw
-    fl=fl_lims(Fy); wb=wb_lims(Fy,Cf,pCy)
-    cf=classify(b2tf,fl); cw=classify(htw,wb); cls=max(cf,cw)
+    # ── STEP 1: Section classification  [CSA S16-24 Tables 4.1, 4.2] ─────────
+    pCy   = phi * A * Fy
+    b2tf  = (bf/2) / tf
+    htw   = h / tw
+    fl    = fl_lims(Fy)
+    wb    = wb_lims(Fy, Cf, pCy)
+    cf    = classify(b2tf, fl)
+    cw    = classify(htw,  wb)
+    cls   = max(cf, cw)
 
-    Mrx_s=Mr_sect(phi,Zx,Sx,Fy,cls); Mry_s=phi*Zy*Fy
-    KLx_rx=Kx*L_mm/rx; KLy_ry=Ky*L_mm/ry
-    Cex=math.pi**2*E*A/KLx_rx**2
-    om1=w1(k); U1s=max(U1_f(om1,Cf,Cex),1.0)
-    Ta=Cf/pCy; Tb=0.85*U1s*Mfx/Mrx_s; Tc=0.6*Mfy/Mry_s; r2=Ta+Tb+Tc
+    # ── Section resistances  [HSC 13.5] ──────────────────────────────────────
+    Mrx_s = Mr_section(phi, Zx, Sx, Fy, cls)   # strong-axis Mr
+    Mry_s = phi * Zy * Fy                        # weak-axis Mr (no LTB for weak axis)
 
-    Crx,lx,Fex=col_cr(phi,A,Fy,KLx_rx,E)
-    Cry,ly,Fey=col_cr(phi,A,Fy,KLy_ry,E)
-    bv=beta(ly); U1a=max(U1_f(om1,Cf,Cex),0.0)
-    T3a_A=Cf/Crx; T3a_B=0.85*U1a*Mfx/Mrx_s; T3a_C=bv*Mfy/Mry_s; r3a=T3a_A+T3a_B+T3a_C
+    # ── Euler critical forces  [HSC 13.8.4] ──────────────────────────────────
+    # Computed for EACH axis independently — used in U1 and Cr calculations
+    KLx_rx = Kx * L_mm / rx
+    KLy_ry = Ky * L_mm / ry
+    Cex    = math.pi**2 * E * A / KLx_rx**2    # strong-axis Euler force
+    Cey    = math.pi**2 * E * A / KLy_ry**2    # weak-axis  Euler force
 
-    Lb=L_mm
-    if Lb<=Lu:
-        Mrx_b=Mrx_s; ltb_ok=True; ltb=f"Lb={Lb:.0f} ≤ Lu={Lu:.0f} mm → no LTB, Mrx = Mp"
+    # ── ω1 moment gradient factors  [HSC 13.8.5] ─────────────────────────────
+    om1x = omega1(k)     # for strong-axis amplification
+    om1y = omega1(kwy)   # for weak-axis  amplification
+
+    # ── U1 amplification factors  [HSC 13.8.4] ───────────────────────────────
+    #
+    #  U1 = ω1 / (1 − Cf/Ce)   accounts for P-δ (member bow between supports)
+    #
+    #  BRACED frame (contreventée) :
+    #  ─────────────────────────────
+    #  Step 2  (vérification de la section)   : U1x ≥ 1.0,  U1y ≥ 1.0
+    #           → minimum 1.0 because the cross-section must carry at least
+    #             the applied moment, never less.
+    #
+    #  Step 3a (pièce sans déversement)       : U1x ≥ 0,    U1y ≥ 0
+    #           → minimum 0.0 is correct here; the in-plane member check
+    #             uses the actual amplified moment.  If U1 < 0 it means
+    #             the member is in double curvature and moment amplification
+    #             is beneficial — but we cap at 0 (not negative).
+    #           SLIDE NOTE: "si contreventé U1x ≥ 0,  U1y ≥ 0"  [HSC 13.8.4]
+    #
+    #  Step 3b (pièce avec déversement)       : U1x ≥ 1.0,  U1y ≥ 0
+    #           → U1x ≥ 1.0 because ω2 (moment gradient in LTB) already
+    #             accounts for the moment shape in Mu.  Using U1x < 1
+    #             would double-count the gradient benefit.
+    #           → U1y ≥ 0 (weak axis has no LTB; U1y can be < 1 for
+    #             double curvature on weak axis in a braced member).
+    #           SLIDE NOTE: "U1x ≥ 1 si on a considéré le déversement"  [HSC 13.8.4]
+    #
+    #  UNBRACED frame (non contreventée) :
+    #  ─────────────────────────────────────
+    #  Steps 2 and 3a are NOT REQUIRED for unbraced members [slide note].
+    #  Only Step 3b (avec déversement) applies, with U1x = U1y = 1.0.
+    #  The P-Δ (storey sway) effect is already captured by U2·Mf,
+    #  so recalculating U1 would double-count it.
+    #  SLIDE NOTE: "si pas contreventé  U1x = U1y = 1.0"  [HSC 13.8.4]
+    #  SLIDE NOTE: "Step 2 pas nécessaire pour une pièce non contreventée"
+    # ─────────────────────────────────────────────────────────────────────────
+    U1x_raw = U1_calc(om1x, Cf, Cex)   # raw value before min clamp
+    U1y_raw = U1_calc(om1y, Cf, Cey)   # raw value before min clamp
+
+    if braced:
+        # Step 2 : U1x ≥ 1.0,  U1y ≥ 1.0
+        U1x_s2 = max(U1x_raw, 1.0)
+        U1y_s2 = max(U1y_raw, 1.0)
+        # Step 3a : U1x ≥ 0,  U1y ≥ 0
+        U1x_3a = max(U1x_raw, 0.0)
+        U1y_3a = max(U1y_raw, 0.0)
+        # Step 3b : U1x ≥ 1.0,  U1y ≥ 0  (LTB already has ω2)
+        U1x_3b = max(U1x_raw, 1.0)
+        U1y_3b = max(U1y_raw, 0.0)
     else:
-        Mu=om2*LTB_Mu(E,G,Iy,J,Cw,Lb)
-        Mrx_b=Mr_ltb_calc(phi,Zx,Sx,Fy,Mu)
-        ltb_ok=False; ltb=f"Lb={Lb:.0f} > Lu={Lu:.0f} mm → LTB reduces Mrx"
-    U1b=max(U1_f(om1,Cf,Cex),1.0)
-    T3b_A=Cf/Cry; T3b_B=0.85*U1b*Mfx/Mrx_b; T3b_C=bv*Mfy/Mry_s; r3b=T3b_A+T3b_B+T3b_C
+        # Unbraced : U1x = U1y = 1.0 everywhere (P-Δ in U2·Mf)
+        U1x_s2 = U1y_s2 = 1.0
+        U1x_3a = U1y_3a = 1.0
+        U1x_3b = U1y_3b = 1.0
 
-    gov=max(r2,r3a,r3b)
+    # ── STEP 2: Cross-section capacity  [HSC 13.8.2] ─────────────────────────
+    # Cr = φCy (squash load — buckling suppressed)
+    # β = 0.6 (fixed for cross-section check)
+    Ta  = Cf / pCy
+    Tb  = 0.85 * U1x_s2 * Mfx / Mrx_s
+    Tc  = 0.6  * U1y_s2 * Mfy / Mry_s
+    r2  = Ta + Tb + Tc
+
+    # ── STEP 3a: Overall member, NO LTB  [HSC 13.8.3] ────────────────────────
+    # Cr = f(λ̄)  where λ̄ = λ̄_max (biaxial: use max of λ̄x, λ̄y)
+    # For biaxial bending, governing λ governs Cr
+    Crx, lx, Fex = col_cr(phi, A, Fy, KLx_rx, E, n)
+    Cry, ly, Fey = col_cr(phi, A, Fy, KLy_ry, E, n)
+    # For biaxial: use λ_max → Cr = min(Crx, Cry)
+    Cr3a  = min(Crx, Cry)
+    lam_max = max(lx, ly)
+    bv    = beta_biaxial(ly)   # β = 0.6 + 0.4·λ̄y  [HSC 13.8.2]
+    T3a_A = Cf / Cr3a
+    T3a_B = 0.85 * U1x_3a * Mfx / Mrx_s
+    T3a_C = bv  * U1y_3a * Mfy / Mry_s
+    r3a   = T3a_A + T3a_B + T3a_C
+
+    # ── STEP 3b: Overall member, WITH LTB  [HSC 13.8.4] ──────────────────────
+    # Cr uses λ̄y (weak-axis governs out-of-plane buckling)
+    # Mrx may be reduced by LTB [HSC 13.6]
+    # NOTE: U1x ≥ 1.0 here — do NOT use U1x < 1 when LTB is considered,
+    # because w2 (moment gradient for LTB) already accounts for moment shape.
+    # Using U1x < 1 would double-count the gradient effect.
+    Lb = L_mm
+    if Lb <= Lu:
+        Mrx_b   = Mrx_s
+        ltb_ok  = True
+        ltb     = f"Lb={Lb:.0f} ≤ Lu={Lu:.0f} mm → Mrx = Mp (aucun déversement)"
+        Mu_eff  = None
+    else:
+        Mu_base = LTB_Mu(E, G, Iy, J, Cw, Lb)
+        Mu_eff  = om2 * Mu_base          # ω2 amplifies resistance  [HSC 13.6]
+        Mrx_b   = Mr_ltb_calc(phi, Zx, Sx, Fy, Mu_eff)
+        ltb_ok  = False
+        ltb     = f"Lb={Lb:.0f} > Lu={Lu:.0f} mm → déversement réduit Mrx"
+
+    T3b_A = Cf / Cry
+    T3b_B = 0.85 * U1x_3b * Mfx / Mrx_b
+    T3b_C = bv  * U1y_3b * Mfy / Mry_s
+    r3b   = T3b_A + T3b_B + T3b_C
+
+    gov = max(r2, r3a, r3b)
+
     return dict(
-        sn=sn,Cf=Cf,Mfx=Mfx,Mfy=Mfy,L=L_mm,Kx=Kx,Ky=Ky,k=k,om2=om2,E=E,G=G,phi=phi,
-        A=A,d=d,bf=bf,tf=tf,tw=tw,h=h,
-        Zx=Zx,Sx=Sx,rx=rx,Zy=Zy,Sy=Sy,ry=ry,Ix=s["Ix"],Iy=Iy,J=J,Cw=Cw,Lu=Lu,Fy=Fy,
-        pCy=pCy,b2tf=b2tf,htw=htw,fl=fl,wb=wb,cf=cf,cw=cw,cls=cls,
-        Mrx_s=Mrx_s,Mry_s=Mry_s,Cex=Cex,om1=om1,U1s=U1s,
-        Ta=Ta,Tb=Tb,Tc=Tc,r2=r2,
-        KLx_rx=KLx_rx,KLy_ry=KLy_ry,
-        lx=lx,ly=ly,Fex=Fex,Fey=Fey,Crx=Crx,Cry=Cry,
-        CrA_x=Crx/A,CrA_y=Cry/A,bv=bv,U1a=U1a,
-        T3a_A=T3a_A,T3a_B=T3a_B,T3a_C=T3a_C,r3a=r3a,
-        Mrx_b=Mrx_b,U1b=U1b,ltb=ltb,ltb_ok=ltb_ok,
-        T3b_A=T3b_A,T3b_B=T3b_B,T3b_C=T3b_C,r3b=r3b,
-        gov=gov,ok=(gov<=1.0),
+        # ── inputs ────────────────────────────────────────────────────────────
+        sn=sn, Cf=Cf, Mfx=Mfx, Mfy=Mfy, L=L_mm,
+        Kx=Kx, Ky=Ky, k=k, kwy=kwy, om2=om2,
+        braced=braced, U2=U2, sec_type=sec_type,
+        E=E, G=G, phi=phi, n=n,
+        # ── section properties ─────────────────────────────────────────────────
+        A=A, d=d, bf=bf, tf=tf, tw=tw, h=h,
+        Zx=Zx, Sx=Sx, rx=rx,
+        Zy=Zy, Sy=Sy, ry=ry,
+        Ix=s["Ix"], Iy=Iy, J=J, Cw=Cw, Lu=Lu, Fy=Fy,
+        # ── Step 1 ────────────────────────────────────────────────────────────
+        pCy=pCy, b2tf=b2tf, htw=htw, fl=fl, wb=wb, cf=cf, cw=cw, cls=cls,
+        # ── applicability flags ────────────────────────────────────────────────
+        # Step 2 & 3a not required for unbraced members [HSC slide note]
+        step2_req=braced,
+        step3a_req=braced,
+        # ── Step 2 ────────────────────────────────────────────────────────────
+        Mrx_s=Mrx_s, Mry_s=Mry_s,
+        Cex=Cex, Cey=Cey,
+        om1x=om1x, om1y=om1y,
+        U1x_raw=U1x_raw, U1y_raw=U1y_raw,
+        U1x_s2=U1x_s2, U1y_s2=U1y_s2,
+        Ta=Ta, Tb=Tb, Tc=Tc, r2=r2,
+        # ── Step 3a ───────────────────────────────────────────────────────────
+        KLx_rx=KLx_rx, KLy_ry=KLy_ry,
+        lx=lx, ly=ly, lam_max=lam_max,
+        Fex=Fex, Fey=Fey,
+        Crx=Crx, Cry=Cry, Cr3a=Cr3a,
+        CrA_x=Crx/A, CrA_y=Cry/A,
+        bv=bv,
+        U1x_3a=U1x_3a, U1y_3a=U1y_3a,
+        T3a_A=T3a_A, T3a_B=T3a_B, T3a_C=T3a_C, r3a=r3a,
+        # ── Step 3b ───────────────────────────────────────────────────────────
+        Mrx_b=Mrx_b, U1x_3b=U1x_3b, U1y_3b=U1y_3b,
+        Mu_eff=Mu_eff, ltb=ltb, ltb_ok=ltb_ok,
+        T3b_A=T3b_A, T3b_B=T3b_B, T3b_C=T3b_C, r3b=r3b,
+        # ── verdict ───────────────────────────────────────────────────────────
+        # For unbraced: gov = max of only applicable checks (Step 3b)
+        gov=gov, ok=(gov<=1.0),
     )
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -934,8 +1362,25 @@ def sensitivity_fig(rv):
 #  SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("## 🏗️ Beam-Column  CSA S16-24")
-    st.markdown("---")
+    st.markdown("""
+<div style="background:linear-gradient(135deg,#0A1628,#1565C0);border-radius:12px;
+            padding:18px 16px 14px;margin-bottom:14px;text-align:center">
+  <div style="font-size:2rem;margin-bottom:4px">🏗️</div>
+  <div style="font-size:1.0rem;font-weight:800;color:white;line-height:1.3">
+    GCI 2011
+  </div>
+  <div style="font-size:.78rem;color:#93C5FD;margin-top:2px">
+    Conception de Structures I
+  </div>
+  <div style="font-size:.72rem;color:#64A5D6;margin-top:1px">
+    Université Laval
+  </div>
+  <div style="margin-top:8px;background:rgba(255,255,255,.12);border-radius:8px;
+              padding:4px 10px;font-size:.72rem;color:#BAD4F5;border:1px solid rgba(255,255,255,.2)">
+    Poteau-poutre · CSA S16-24 Cl. 13
+  </div>
+</div>
+""", unsafe_allow_html=True)
     st.markdown("### Section  (Table T1 — CISC HSC)")
     fam = st.selectbox("Family", list(FAMILIES.keys()), index=6)   # W310 default
     sn  = st.selectbox("Section", FAMILIES[fam],
@@ -975,46 +1420,88 @@ with st.sidebar:
     Kx   = st.select_slider("Kx", [0.5,0.65,0.7,1.0,1.2,1.5,2.0], value=1.0)
     Ky   = st.select_slider("Ky", [0.5,0.65,0.7,1.0,1.2,1.5,2.0], value=1.0)
 
-    st.markdown("### Moment parameters")
-    k_ratio = st.slider("k = Mf1/Mf2", -1.0, 1.0, 0.67, 0.01,
-        help="+1 = double curvature (best);  −1 = single (worst)")
-    omega2  = st.slider("ω₂  (LTB gradient)", 0.6, 2.5, 1.0, 0.05,
-        help="1.0 = conservative (uniform moment)")
-    st.markdown("---")
+    st.markdown("### Paramètres de moment  [HSC 13.8.5]")
+    k_ratio = st.slider("κ = Mf1/Mf2  (axe fort)", -1.0, 1.0, 0.67, 0.01,
+        help="+1 = double courbure (meilleur cas)  |  −1 = courbure simple (pire cas)\n"
+             "ω1x = 0.6 − 0.4·κ ≥ 0.4")
+    kwy_ratio = st.slider("κy = Mf1/Mf2  (axe faible)", -1.0, 1.0, 0.67, 0.01,
+        help="Rapport de moments pour l'axe faible — utilisé pour ω1y et U1y")
+    omega2 = st.slider("ω₂  (gradient LTB, axe fort)", 0.6, 2.5, 1.0, 0.05,
+        help="Facteur de gradient de moment pour le déversement [HSC 13.6]\n"
+             "1.0 = moment uniforme (conservateur)\n"
+             "Calculé : 1.75 + 1.05κ + 0.3κ² ≤ 2.5")
+
+    st.markdown("### Contreventement et U2  [HSC 13.8.4]")
+    braced_choice = st.radio("Type de structure",
+        ["Contreventée", "Non contreventée"],
+        index=0,
+        help="Contreventée : U1 calculé par axe (effet P-δ)\n"
+             "Non contreventée : U1=1.0, Mf amplifié par U2 (effet P-Δ)")
+    braced = (braced_choice == "Contreventée")
+    U2_val = 1.0
+    if not braced:
+        U2_val = st.number_input(
+            "U2  (amplification P-Δ de l'étage)", 1.00, 5.00, 1.00, 0.05,
+            help="U2 ≥ 1/(1 − ΣCf/ΣCe_étage)  [HSC Cl. 8.7]\n"
+                 "Mfx et Mfy seront multipliés par U2 avant les vérifications.")
+        st.markdown(
+            '<div class="ibox">⚠️ <b>Structure non contreventée</b><br>'
+            'U1x = U1y = 1.0 (P-δ non re-calculé)<br>'
+            f'Mf × U2 = Mf × {U2_val:.2f} appliqué dans toutes les vérifications.</div>',
+            unsafe_allow_html=True)
+
+    st.markdown("### Type de section  [HSC 13.3.1]")
+    sec_type = st.radio("Fabrication",
+        ["hot-rolled", "welded"],
+        format_func=lambda x:
+            "Laminée à chaud  (n = 1.34)" if x == "hot-rolled"
+            else "Soudée / WWF       (n = 2.24)",
+        help="n = 1.34  sections laminées à chaud\n"
+             "n = 2.24  sections soudées (WWF)  [HSC 13.3.1]")
+
     st.markdown("""
-<div style="font-size:.75rem;color:#666;line-height:1.7">
-  <strong style="color:#1565C0">GCI 2011 — Conception de Structures I</strong><br>
-  Université Laval<br>
-  Prof. Luca Sorelli, ing., Ph.D.<br><br>
-  φ = 0.90 &nbsp;|&nbsp; E = 200 000 MPa &nbsp;|&nbsp; G = 77 000 MPa<br>
-  Data: CISC HSC 13th ed. T1 · T2 · T3<br>
-  Code: CSA S16-24
+<div style="margin-top:8px;background:rgba(255,255,255,.06);border-radius:10px;
+            padding:12px 14px;border:1px solid rgba(255,255,255,.12)">
+  <div style="font-size:.7rem;color:#94A3B8;line-height:1.9;text-align:center">
+    <span style="color:#60A5FA;font-weight:700">φ = 0.90</span> &nbsp;·&nbsp;
+    E = 200 000 MPa &nbsp;·&nbsp; G = 77 000 MPa<br>
+    <span style="color:#60A5FA">CISC HSC 13e éd.</span> T1·T2·T3<br>
+    <span style="color:#60A5FA">CSA S16-24</span> Cl. 13<br>
+    <span style="color:#64748B;font-size:.65rem">Prof. Luca Sorelli, ing., Ph.D.</span>
+  </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  COMPUTE
 # ═══════════════════════════════════════════════════════════════════════════════
-rv = compute(sn, Cf_kN, Mfx_kNm, Mfy_kNm, L_mm, Kx, Ky, k_ratio, omega2)
+rv = compute(sn, Cf_kN, Mfx_kNm, Mfy_kNm, L_mm,
+             Kx=Kx, Ky=Ky, k=k_ratio, kwy=kwy_ratio,
+             om2=omega2, braced=braced, U2=U2_val,
+             sec_type=sec_type)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  HEADER  &  KPI STRIP
 # ═══════════════════════════════════════════════════════════════════════════════
 # ── Course / author header ───────────────────────────────────────────────────
 st.markdown("""
-<div style="border-bottom:2px solid #1565C0;padding-bottom:10px;margin-bottom:6px">
-  <div style="font-size:1.5rem;font-weight:800;color:#1565C0;line-height:1.25;margin-bottom:2px">
-    🏗️ Vérification d'une pièce poteau-poutre — CSA S16-24  (Cl. 13)
-  </div>
-  <div style="display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:4px">
-    <div style="font-size:.85rem;color:#555">
-      Propriétés des sections : CISC HSC Table T1 &nbsp;·&nbsp;
-      Cr/A : Table T2 &nbsp;·&nbsp; Lu : Table T3
+<div class="app-header">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div>
+      <div style="font-size:1.55rem;font-weight:800;color:white;line-height:1.2;letter-spacing:-.01em">
+        🏗️ Vérification d'une pièce poteau-poutre
+      </div>
+      <div style="font-size:.95rem;color:#93C5FD;margin-top:3px;font-weight:500">
+        CSA S16-24 Cl. 13 &nbsp;·&nbsp; CISC HSC T1 · T2 · T3
+      </div>
     </div>
-    <div style="font-size:.82rem;color:#444;text-align:right;line-height:1.55">
-      <strong style="color:#1565C0">GCI 2011 — Conception de Structures I</strong>
-      &nbsp;|&nbsp; Université Laval
-      &nbsp;|&nbsp; Prof. Luca Sorelli, ing., Ph.D.
+    <div style="text-align:right">
+      <div style="font-size:.95rem;font-weight:700;color:white">
+        GCI 2011 — Conception de Structures I
+      </div>
+      <div style="font-size:.82rem;color:#BAD4F5;margin-top:2px">
+        Université Laval &nbsp;·&nbsp; Prof. Luca Sorelli, ing., Ph.D.
+      </div>
     </div>
   </div>
 </div>
@@ -1031,16 +1518,24 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 c1,c2,c3,c4,c5,c6 = st.columns(6)
-def kpi(v,lbl,col):
-    return (f'<div class="kpi"><div class="kpi-l">{lbl}</div>'
+def kpi(v, lbl, col, border_col=None):
+    bc = border_col or col
+    return (f'<div class="kpi" style="border-top-color:{bc}">'
+            f'<div class="kpi-l">{lbl}</div>'
             f'<div class="kpi-v" style="color:{col}">{v}</div></div>')
-c1.markdown(kpi(f"Classe {rv['cls']}","Classe de la section",[GR,GR,GO,RD][rv["cls"]-1]),unsafe_allow_html=True)
-c2.markdown(kpi(f"{rv['r2']:.4f}","② Vérif. section",rclr(rv["r2"])),unsafe_allow_html=True)
-c3.markdown(kpi(f"{rv['r3a']:.4f}","③ Pièce sans dévers.",rclr(rv["r3a"])),unsafe_allow_html=True)
-c4.markdown(kpi(f"{rv['r3b']:.4f}","④ Pièce avec dévers.",rclr(rv["r3b"])),unsafe_allow_html=True)
-c5.markdown(kpi(f"{rv['gov']:.4f}","GOUVERNANT",rclr(rv["gov"])),unsafe_allow_html=True)
-c6.markdown(kpi("✓ OK" if rv["ok"] else "✗ NG","VERDICT",GR if rv["ok"] else RD),unsafe_allow_html=True)
-st.markdown("---")
+c1.markdown(kpi(f"Classe {rv['cls']}", "Classe de la section",
+    [GR,GR,GO,RD][rv["cls"]-1]), unsafe_allow_html=True)
+c2.markdown(kpi(f"{rv['r2']:.4f}", "② Vérif. section",
+    rclr(rv["r2"])), unsafe_allow_html=True)
+c3.markdown(kpi(f"{rv['r3a']:.4f}", "③ Sans déversement",
+    rclr(rv["r3a"])), unsafe_allow_html=True)
+c4.markdown(kpi(f"{rv['r3b']:.4f}", "④ Avec déversement",
+    rclr(rv["r3b"])), unsafe_allow_html=True)
+c5.markdown(kpi(f"{rv['gov']:.4f}", "GOUVERNANT",
+    rclr(rv["gov"])), unsafe_allow_html=True)
+c6.markdown(kpi("✓ ADÉQUAT" if rv["ok"] else "✗ INADÉQUAT", "VERDICT",
+    GR if rv["ok"] else RD), unsafe_allow_html=True)
+st.markdown("<div style='margin:4px 0 12px'></div>", unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  TABS
@@ -1092,74 +1587,104 @@ with t0:
 
     st.markdown("### Computed section capacities")
     st.markdown(f"""<div class="fbox">
-φCy = φ·A·Fy = {rv['phi']}×{rv['A']:,}×{rv['Fy']} = <b>{rv['pCy']/1e3:.1f} kN</b> (squash load — no buckling)<br>
-Mrx = φ·Zx·Fy = {rv['phi']}×{rv['Zx']/1e3:.0f}×10³×{rv['Fy']} = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b> (Class {rv['cls']}, Fy={rv['Fy']} MPa)<br>
-Mry = φ·Zy·Fy = {rv['phi']}×{rv['Zy']/1e3:.0f}×10³×{rv['Fy']} = <b>{rv['Mry_s']/1e6:.1f} kN·m</b><br>
-KLx/rx = {rv['Kx']}×{rv['L']:.0f}/{rv['rx']} = <b>{rv['KLx_rx']:.1f}</b>  →  Cr(x)/A = <b>{rv['CrA_x']:.1f} MPa</b>  (Table T2)<br>
-KLy/ry = {rv['Ky']}×{rv['L']:.0f}/{rv['ry']} = <b>{rv['KLy_ry']:.1f}</b>  →  Cr(y)/A = <b>{rv['CrA_y']:.1f} MPa</b>  (Table T2 — governs)<br>
-Lu = <b>{rv['Lu']:,} mm</b> (Table T3)   Lb = <b>{rv['L']:.0f} mm</b>
-→  {'✅  Lb ≤ Lu : no LTB reduction' if rv['L']<=rv['Lu'] else '⚠️  Lb > Lu : LTB check required'}
+<b>Résistances de la section  [HSC 13.5]</b><br>
+φCy = φ·A·Fy = {rv['phi']}×{rv['A']:,}×{rv['Fy']} = <b>{rv['pCy']/1e3:.1f} kN</b>  (charge d'écrasement, sans flambement)<br>
+{'Mrx = φ·Zx·Fy' if rv['cls']<=2 else 'Mrx = φ·Sx·Fy'} = {rv['phi']}×{rv['Zx']/1e3:.0f if rv['cls']<=2 else rv['Sx']/1e3:.0f}×10³×{rv['Fy']} = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>  (Classe {rv['cls']})<br>
+Mry = φ·Zy·Fy = {rv['phi']}×{rv['Zy']/1e3:.0f}×10³×{rv['Fy']} = <b>{rv['Mry_s']/1e6:.1f} kN·m</b>  (axe faible, sans déversement)<br><br>
+<b>Forces d'Euler critiques  [HSC 13.8.4]</b><br>
+Cex = π²·E·A/(KLx/rx)² = π²×{rv['E']:.0f}×{rv['A']:,}/{rv['KLx_rx']:.1f}² = <b>{rv['Cex']/1e3:.1f} kN</b><br>
+Cey = π²·E·A/(KLy/ry)² = π²×{rv['E']:.0f}×{rv['A']:,}/{rv['KLy_ry']:.1f}² = <b>{rv['Cey']/1e3:.1f} kN</b><br><br>
+<b>Élancement réduit  [HSC 13.3.1]</b><br>
+λ̄x = √(Fy/Fex) = √({rv['Fy']}/{rv['Fex']:.1f}) = <b>{rv['lx']:.4f}</b>  (axe fort)<br>
+λ̄y = √(Fy/Fey) = √({rv['Fy']}/{rv['Fey']:.1f}) = <b>{rv['ly']:.4f}</b>  (axe faible — gouvernant pour Cr et β)<br>
+λ̄_max = <b>{rv['lam_max']:.4f}</b>  (utilisé pour Cr en flexion biaxiale)<br><br>
+<b>Résistance en compression  [HSC 13.3.1]</b>  n = {rv['n']}<br>
+Crx = φ·A·Fy·(1+λ̄x^(2n))^(-1/n) = <b>{rv['Crx']/1e3:.1f} kN</b>  |  Cr/A = <b>{rv['CrA_x']:.1f} MPa</b>  (Table T2)<br>
+Cry = φ·A·Fy·(1+λ̄y^(2n))^(-1/n) = <b>{rv['Cry']/1e3:.1f} kN</b>  |  Cr/A = <b>{rv['CrA_y']:.1f} MPa</b>  (Table T2 — gouvernant)<br><br>
+<b>Vérification du déversement  [HSC 13.6]</b><br>
+Lb = {rv['L']:.0f} mm  |  Lu = {rv['Lu']:,} mm  →  {'✅ Lb ≤ Lu : Mrx* = Mp (aucun déversement)' if rv['ltb_ok'] else '⚠️ Lb > Lu : le déversement réduit Mrx*'}
 </div>""", unsafe_allow_html=True)
 
 # ── Tab 1: Classification ───────────────────────────────────────────────────
 with t1:
     cls_col=[GR,GR,GO,RD][rv["cls"]-1]
     st.markdown("## ① Classification de la section  [CSA S16-24 Tables 4.1 / 4.2]")
-    st.markdown('<div class="ibox">The section class controls whether Mp = φ·Fy·Zx (Class 1&2) or My = φ·Fy·Sx (Class 3) can be reached before local buckling. The web limit is relaxed when Cf is small relative to φCy.</div>',unsafe_allow_html=True)
+    st.markdown('<div class="ibox"><b>Pourquoi classer la section ?</b>  La classe determine si la section peut atteindre le moment plastique Mp = φ·Fy·Zx (Classe 1&2) ou seulement le moment elastique My = φ·Fy·Sx (Classe 3) avant le voilement local. La limite de l\'ame pour les poteaux-poutres depend de Cf/φCy.</div>',unsafe_allow_html=True)
     ca,cm,cb=st.columns([1,0.85,1.4])
     with ca: st.plotly_chart(section_fig(rv),use_container_width=True,key="sec1")
     with cm: st.plotly_chart(member_fig(rv),use_container_width=True,key="mem1")
     with cb: st.plotly_chart(slender_fig(rv),use_container_width=True,key="slen1")
     st.markdown(f"""<div class="fbox">
-<b>FLANGE</b>  b/(2·tf)  ≤  170/√Fy  (Class 2 limit)<br>
-  ({rv['bf']/2:.1f}) / {rv['tf']} = <b>{rv['b2tf']:.3f}</b>
-  ≤  170/√{rv['Fy']} = <b>{rv['fl'][2]:.3f}</b>  → Flange <b>Class {rv['cf']}</b><br><br>
-<b>WEB</b>  h/tw  ≤  (1700/√Fy)·(1 − 0.391·Cf/φCy)  (Class 2 limit)<br>
-  φCy = {rv['pCy']/1e3:.1f} kN   {rv['h']}/{rv['tw']} = <b>{rv['htw']:.3f}</b>
-  ≤  (1700/√{rv['Fy']})·(1 − 0.391·{rv['Cf']/1e3:.1f}/{rv['pCy']/1e3:.1f}) = <b>{rv['wb'][2]:.3f}</b>  → Web <b>Class {rv['cw']}</b><br><br>
-<b>CLASSE GOUVERNANTE = max({rv['cf']}, {rv['cw']}) = Classe {rv['cls']}</b>
-  → Mrx = {'φ·Fy·Zx (plastic)' if rv['cls']<=2 else 'φ·Fy·Sx (elastic)'} = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>
+<b>AILE  [HSC Table 4.1]</b>  b/(2·tf)  ≤  170/√Fy  (limite Classe 2)<br>
+  b/(2·tf) = ({rv['bf']/2:.1f}) / {rv['tf']} = <b>{rv['b2tf']:.3f}</b>
+  ≤  170/√{rv['Fy']} = <b>{rv['fl'][2]:.3f}</b>  → Aile <b>Classe {rv['cf']}</b><br><br>
+<b>ÂME  [HSC Table 4.2]</b>  h/tw  ≤  (1700/√Fy)·(1 − 0.391·Cf/φCy)  (limite Classe 2)<br>
+  φCy = {rv['pCy']/1e3:.1f} kN  |  h/tw = {rv['h']}/{rv['tw']} = <b>{rv['htw']:.3f}</b>
+  ≤  (1700/√{rv['Fy']})·(1 − 0.391·{rv['Cf']/1e3:.1f}/{rv['pCy']/1e3:.1f}) = <b>{rv['wb'][2]:.3f}</b>  → Âme <b>Classe {rv['cw']}</b><br><br>
+<b>CLASSE GOUVERNANTE = max(Aile {rv['cf']}, Âme {rv['cw']}) = Classe {rv['cls']}</b><br>
+  → Mrx = {'φ·Zx·Fy (moment plastique)' if rv['cls']<=2 else 'φ·Sx·Fy (moment élastique)'} = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>
 </div>""", unsafe_allow_html=True)
 
 # ── Tab 2: Cross-section ────────────────────────────────────────────────────
 with t2:
     st.markdown("## ② Vérification de la section  [CSA S16-24 Cl. 13.8.2]")
-    st.markdown('<div class="ibox">Member treated as infinitely short (squash load). Cr = φCy = φ·A·Fy. Checks section can carry combined loads regardless of length. β = 0.6 (fixed). U1x ≥ 1.0.</div>',unsafe_allow_html=True)
+    if not rv["braced"]:
+        st.markdown('<div class="rwarn">⚠️ <b>Structure non contreventée :</b> la vérification de la section (Step 2) n\'est PAS REQUISE pour les pièces non contreventées [HSC 13.8.2 — note de la diapositive]. Résultat affiché à titre indicatif seulement. Seule la Vérification ④ (avec déversement) est requise.</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="ibox"><b>Principe :</b> la pièce est traitée comme infiniment courte (Cr = φCy, sans flambement). β = 0.6 (fixe pour cette vérification). <b>U1x ≥ 1.0, U1y ≥ 1.0</b> [HSC 13.8.4].</div>', unsafe_allow_html=True)
     st.plotly_chart(stacked_bar(
         [rv["Ta"],rv["Tb"],rv["Tc"]],
-        [f"Cf / φCy = {rv['Cf']/1e3:.1f} / {rv['pCy']/1e3:.1f}",
-         f"0.85·U1x·Mfx/Mrx = 0.85×{rv['U1s']:.3f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_s']/1e6:.1f}",
-         f"β·Mfy/Mry = 0.6×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}"],
+        [f"Cf/φCy = {rv['Cf']/1e3:.1f}/{rv['pCy']/1e3:.1f}",
+         f"0.85·U1x·Mfx/Mrx = 0.85×{rv['U1x_s2']:.3f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_s']/1e6:.1f}",
+         f"β·U1y·Mfy/Mry = 0.6×{rv['U1y_s2']:.3f}×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}"],
         [TL,OR,PU], rv["r2"],
-        "Interaction (Step 2) — each term's share of the 1.0 limit"),
+        "② Vérification de la section — contribution de chaque terme"),
         use_container_width=True, key="s2bar")
     st.markdown(f"""<div class="fbox">
-φCy = {rv['phi']}×{rv['A']:,}×{rv['Fy']} = <b>{rv['pCy']/1e3:.1f} kN</b>   Mrx = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>   β = 0.6<br>
-ω1 = 0.6 − 0.4×{rv['k']:.2f} = {rv['om1']:.4f}  (≥ 0.4)<br>
-Cex = π²×{rv['E']:.0f}×{rv['A']:,} / {rv['KLx_rx']:.1f}² = <b>{rv['Cex']/1e3:.1f} kN</b><br>
-U1x = {rv['om1']:.4f} / (1 − {rv['Cf']/1e3:.1f}/{rv['Cex']/1e3:.1f}) = <b>{rv['U1s']:.4f}</b>  (≥ 1.0)<br><br>
-{rv['Cf']/1e3:.1f}/{rv['pCy']/1e3:.1f}  +  0.85×{rv['U1s']:.4f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_s']/1e6:.1f}  +  0.6×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}<br>
+<b>Équation d'interaction  [HSC 13.8.2] :</b>  Cf/φCy  +  0.85·U1x·Mfx/Mrx  +  β·U1y·Mfy/Mry  ≤ 1.0<br><br>
+<b>Résistances  [HSC 13.5] :</b><br>
+φCy = φ·A·Fy = {rv['phi']}×{rv['A']:,}×{rv['Fy']} = <b>{rv['pCy']/1e3:.1f} kN</b><br>
+Mrx = <b>{rv['Mrx_s']/1e6:.1f} kN·m</b>   Mry = <b>{rv['Mry_s']/1e6:.1f} kN·m</b>   β = 0.6 (fixe — vérification de section)<br><br>
+<b>ω1 et U1  [HSC 13.8.4, 13.8.5] — condition : U1x ≥ 1.0,  U1y ≥ 1.0 :</b><br>
+ω1x = 0.6 − 0.4×{rv['k']:.2f} = <b>{rv['om1x']:.4f}</b>  (≥ 0.4)   |   ω1y = 0.6 − 0.4×{rv['kwy']:.2f} = <b>{rv['om1y']:.4f}</b>  (≥ 0.4)<br>
+Cex = <b>{rv['Cex']/1e3:.1f} kN</b>   |   Cey = <b>{rv['Cey']/1e3:.1f} kN</b><br>
+{'U1x brut = ω1x/(1−Cf/Cex) = '+f"{rv['om1x']:.4f}/(1−{rv['Cf']/1e3:.1f}/{rv['Cex']/1e3:.1f}) = {rv['U1x_raw']:.4f}  → appliqué = max({rv['U1x_raw']:.4f}, 1.0) = <b>{rv['U1x_s2']:.4f}</b>" if rv['braced'] else "<b>U1x = 1.0</b>  (non contreventée)"}<br>
+{'U1y brut = ω1y/(1−Cf/Cey) = '+f"{rv['om1y']:.4f}/(1−{rv['Cf']/1e3:.1f}/{rv['Cey']/1e3:.1f}) = {rv['U1y_raw']:.4f}  → appliqué = max({rv['U1y_raw']:.4f}, 1.0) = <b>{rv['U1y_s2']:.4f}</b>" if rv['braced'] else "<b>U1y = 1.0</b>  (non contreventée)"}<br><br>
+<b>Résultat :</b><br>
+{rv['Cf']/1e3:.1f}/{rv['pCy']/1e3:.1f}  +  0.85×{rv['U1x_s2']:.4f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_s']/1e6:.1f}  +  0.6×{rv['U1y_s2']:.4f}×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}<br>
 = <b>{rv['Ta']:.4f}</b>  +  <b>{rv['Tb']:.4f}</b>  +  <b>{rv['Tc']:.4f}</b>  =  <b>{rv['r2']:.4f}</b>
+{'<br><br><i>⚠️ Rappel : cette vérification est indicative seulement pour une structure non contreventée.</i>' if not rv['braced'] else ''}
 </div>""", unsafe_allow_html=True)
     st.markdown(rhtml(rv["r2"]),unsafe_allow_html=True)
 
 # ── Tab 3: Step 3a ──────────────────────────────────────────────────────────
 with t3:
     st.markdown("## ③ Vérification de la pièce — sans déversement  [CSA S16-24 Cl. 13.8.3]")
-    st.markdown('<div class="ibox">Cr uses <b>strong-axis</b> slenderness λ̄x. Checks in-plane member buckling. U1x ≥ 0. β = 0.6 + 0.4·λ̄y.</div>',unsafe_allow_html=True)
+    if not rv["braced"]:
+        st.markdown('<div class="rwarn">⚠️ <b>Structure non contreventée :</b> la vérification de la pièce sans déversement (Step 3a) n\'est PAS REQUISE pour les pièces non contreventées. Seule la Vérification ④ (avec déversement) est requise. Résultat affiché à titre indicatif seulement.</div>', unsafe_allow_html=True)
+    else:
+        st.markdown('<div class="ibox"><b>Principe :</b> Cr = f(λ̄_max) — λ̄ gouvernant pour flexion biaxiale. <b>U1x ≥ 0, U1y ≥ 0</b> (contreventée, amplification peut être inférieure à 1 pour double courbure) [HSC 13.8.4]. β = 0.6 + 0.4·λ̄y ≤ 0.85  [HSC 13.8.2].</div>', unsafe_allow_html=True)
     ca,cb=st.columns([1.5,1])
     with ca: st.plotly_chart(col_curve_fig(rv,"x"),use_container_width=True,key="cc3a")
     with cb: st.plotly_chart(stacked_bar(
         [rv["T3a_A"],rv["T3a_B"],rv["T3a_C"]],
-        ["Cf/Cr(λ̄x)","0.85·U1x·Mfx/Mrx","β·Mfy/Mry"],
-        [TL,OR,PU],rv["r3a"],"Interaction (3a)"),
+        [f"Cf/Cr(λ̄_max)","0.85·U1x·Mfx/Mrx","β·U1y·Mfy/Mry"],
+        [TL,OR,PU],rv["r3a"],"③ Pièce sans déversement — contribution de chaque terme"),
         use_container_width=True,key="s3abar")
     st.markdown(f"""<div class="fbox">
-KLx/rx = {rv['KLx_rx']:.1f}   Fe_x = π²×{rv['E']:.0f}/{rv['KLx_rx']:.1f}² = {rv['Fex']:.1f} MPa   λ̄x = √({rv['Fy']}/{rv['Fex']:.1f}) = <b>{rv['lx']:.4f}</b><br>
-Cr(λ̄x) = φ·A·Fy·(1+λ̄x^(2n))^(-1/n)  [n=1.34] = <b>{rv['Crx']/1e3:.1f} kN</b>   Cr/A = <b>{rv['CrA_x']:.1f} MPa</b>  (Table T2)<br>
-KLy/ry = {rv['KLy_ry']:.1f}   λ̄y = {rv['ly']:.4f}   β = 0.6+0.4×{rv['ly']:.4f} = <b>{rv['bv']:.4f}</b>  (≤ 0.85)<br>
-U1x = <b>{rv['U1a']:.4f}</b>  (≥ 0)<br><br>
-{rv['Cf']/1e3:.1f}/{rv['Crx']/1e3:.1f}  +  0.85×{rv['U1a']:.4f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_s']/1e6:.1f}  +  {rv['bv']:.4f}×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}<br>
+<b>Équation d'interaction  [HSC 13.8.3] :</b>  Cf/Cr(λ̄_max)  +  0.85·U1x·Mfx/Mrx  +  β·U1y·Mfy/Mry  ≤ 1.0<br><br>
+<b>Élancement et Cr  [HSC 13.3.1] :</b>  n = {rv['n']}<br>
+KLx/rx = {rv['KLx_rx']:.1f}  →  Fex = {rv['Fex']:.1f} MPa  →  λ̄x = √(Fy/Fex) = <b>{rv['lx']:.4f}</b><br>
+KLy/ry = {rv['KLy_ry']:.1f}  →  Fey = {rv['Fey']:.1f} MPa  →  λ̄y = √(Fy/Fey) = <b>{rv['ly']:.4f}</b><br>
+λ̄_max = max({rv['lx']:.4f}, {rv['ly']:.4f}) = <b>{rv['lam_max']:.4f}</b>  → Cr = min(Crx, Cry) = <b>{rv['Cr3a']/1e3:.1f} kN</b><br>
+Crx = <b>{rv['Crx']/1e3:.1f} kN</b>  (Cr/A = {rv['CrA_x']:.1f} MPa)   |   Cry = <b>{rv['Cry']/1e3:.1f} kN</b>  (Cr/A = {rv['CrA_y']:.1f} MPa)  [Table T2]<br><br>
+<b>β  [HSC 13.8.2] :</b>  β = 0.6 + 0.4·λ̄y = 0.6 + 0.4×{rv['ly']:.4f} = <b>{rv['bv']:.4f}</b>  (≤ 0.85)<br><br>
+<b>U1  [HSC 13.8.4] — condition : U1x ≥ 0,  U1y ≥ 0 :</b><br>
+{'U1x brut = ω1x/(1−Cf/Cex) = '+f"{rv['om1x']:.4f}/(1−{rv['Cf']/1e3:.1f}/{rv['Cex']/1e3:.1f}) = {rv['U1x_raw']:.4f}  → appliqué = max({rv['U1x_raw']:.4f}, 0) = <b>{rv['U1x_3a']:.4f}</b>" if rv['braced'] else "<b>U1x = 1.0</b>  (non contreventée)"}<br>
+{'U1y brut = ω1y/(1−Cf/Cey) = '+f"{rv['om1y']:.4f}/(1−{rv['Cf']/1e3:.1f}/{rv['Cey']/1e3:.1f}) = {rv['U1y_raw']:.4f}  → appliqué = max({rv['U1y_raw']:.4f}, 0) = <b>{rv['U1y_3a']:.4f}</b>" if rv['braced'] else "<b>U1y = 1.0</b>  (non contreventée)"}<br>
+<i>Note : U1 ≥ 0 (pas ≥ 1) car la double courbure (κ > 0) peut réduire l'amplification du moment.</i><br><br>
+<b>Résultat :</b><br>
+{rv['Cf']/1e3:.1f}/{rv['Cr3a']/1e3:.1f}  +  0.85×{rv['U1x_3a']:.4f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_s']/1e6:.1f}  +  {rv['bv']:.4f}×{rv['U1y_3a']:.4f}×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}<br>
 = <b>{rv['T3a_A']:.4f}</b>  +  <b>{rv['T3a_B']:.4f}</b>  +  <b>{rv['T3a_C']:.4f}</b>  =  <b>{rv['r3a']:.4f}</b>
 </div>""", unsafe_allow_html=True)
     st.markdown(rhtml(rv["r3a"]),unsafe_allow_html=True)
@@ -1167,20 +1692,26 @@ U1x = <b>{rv['U1a']:.4f}</b>  (≥ 0)<br><br>
 # ── Tab 4: Step 3b ──────────────────────────────────────────────────────────
 with t4:
     st.markdown("## ④ Vérification de la pièce — avec déversement  [CSA S16-24 Cl. 13.8.4]")
-    st.markdown(f'<div class="ibox">Cr uses <b>weak-axis</b> λ̄y. {rv["ltb"]}. U1x ≥ 1.0 (prevents double-counting P-δ already in Mrx).</div>',unsafe_allow_html=True)
+    st.markdown(f'<div class="ibox"><b>Principe :</b> Cr = f(λ̄y) — l\'axe faible gouverne le flambement hors-plan. Mrx peut être réduit par déversement si Lb > Lu. U1x ≥ 1.0 (ne pas cumuler avec ω₂ déjà dans Mu).<br><b>{rv["ltb"]}</b></div>',unsafe_allow_html=True)
     ca,cb=st.columns([1.5,1])
     with ca: st.plotly_chart(col_curve_fig(rv,"y"),use_container_width=True,key="cc3b")
     with cb: st.plotly_chart(stacked_bar(
         [rv["T3b_A"],rv["T3b_B"],rv["T3b_C"]],
-        ["Cf/Cr(λ̄y)","0.85·U1x·Mfx/Mrx*","β·Mfy/Mry"],
-        [TL,OR,PU],rv["r3b"],"Interaction (3b, LTB)"),
+        [f"Cf/Cr(λ̄y)","0.85·U1x·Mfx/Mrx*","β·U1y·Mfy/Mry"],
+        [TL,OR,PU],rv["r3b"],"④ Pièce avec déversement — contribution de chaque terme"),
         use_container_width=True,key="s3bbar")
     st.markdown(f"""<div class="fbox">
-KLy/ry = {rv['KLy_ry']:.1f}   Fe_y = {rv['Fey']:.1f} MPa   λ̄y = <b>{rv['ly']:.4f}</b><br>
-Cr(λ̄y) = <b>{rv['Cry']/1e3:.1f} kN</b>   Cr/A = <b>{rv['CrA_y']:.1f} MPa</b>  (Table T2 — governs)<br>
-LTB:  Lb = {rv['L']:.0f} mm   Lu = {rv['Lu']:,} mm  →  {'Mrx* = Mp = ' if rv['ltb_ok'] else 'LTB reduces Mrx* = '}<b>{rv['Mrx_b']/1e6:.1f} kN·m</b>  (Table T3)<br>
-U1x = <b>{rv['U1b']:.4f}</b>  (≥ 1.0)<br><br>
-{rv['Cf']/1e3:.1f}/{rv['Cry']/1e3:.1f}  +  0.85×{rv['U1b']:.4f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_b']/1e6:.1f}  +  {rv['bv']:.4f}×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}<br>
+<b>Équation d'interaction  [HSC 13.8.4] :</b>  Cf/Cr(λ̄y)  +  0.85·U1x·Mfx/Mrx*  +  β·U1y·Mfy/Mry  ≤ 1.0<br><br>
+<b>Cr axe faible  [HSC 13.3.1] :</b>  KLy/ry = {rv['KLy_ry']:.1f}  →  λ̄y = <b>{rv['ly']:.4f}</b>  →  Cry = <b>{rv['Cry']/1e3:.1f} kN</b>  (Cr/A = {rv['CrA_y']:.1f} MPa)  [Table T2]<br><br>
+<b>Résistance en flexion  [HSC 13.6] :</b>  Lb = {rv['L']:.0f} mm  |  Lu = {rv['Lu']:,} mm  |  ω₂ = {rv['om2']}<br>
+{'Mrx* = Mp = <b>'+f"{rv['Mrx_b']/1e6:.1f}"+'</b> kN·m  (Lb ≤ Lu — pas de déversement)' if rv['ltb_ok'] else f"Mu = ω₂·(π/Lb)·√(E·Iy·G·J + (π·E/Lb)²·Iy·Cw) = <b>{rv['Mu_eff']/1e6:.1f} kN·m</b>  →  Mrx* = <b>{rv['Mrx_b']/1e6:.1f} kN·m</b>"}<br><br>
+<b>U1  [HSC 13.8.4] — conditions : U1x ≥ 1.0,  U1y ≥ 0 :</b><br>
+<i>U1x ≥ 1.0 (pas ≥ 0) : ω₂ est déjà inclus dans Mu pour le déversement — utiliser U1x &lt; 1 cumuleraient l'effet du gradient deux fois.</i><br>
+<i>U1y ≥ 0 (pas ≥ 1) : l'axe faible n'est pas affecté par le déversement — la double courbure peut réduire U1y.</i><br>
+{'U1x brut = '+f"{rv['U1x_raw']:.4f}  → appliqué = max({rv['U1x_raw']:.4f}, 1.0) = <b>{rv['U1x_3b']:.4f}</b>" if rv['braced'] else "<b>U1x = 1.0</b>  (non contreventée)"}<br>
+{'U1y brut = '+f"{rv['U1y_raw']:.4f}  → appliqué = max({rv['U1y_raw']:.4f}, 0) = <b>{rv['U1y_3b']:.4f}</b>" if rv['braced'] else "<b>U1y = 1.0</b>  (non contreventée)"}<br><br>
+<b>Résultat :</b><br>
+{rv['Cf']/1e3:.1f}/{rv['Cry']/1e3:.1f}  +  0.85×{rv['U1x_3b']:.4f}×{rv['Mfx']/1e6:.1f}/{rv['Mrx_b']/1e6:.1f}  +  {rv['bv']:.4f}×{rv['U1y_3b']:.4f}×{rv['Mfy']/1e6:.1f}/{rv['Mry_s']/1e6:.1f}<br>
 = <b>{rv['T3b_A']:.4f}</b>  +  <b>{rv['T3b_B']:.4f}</b>  +  <b>{rv['T3b_C']:.4f}</b>  =  <b>{rv['r3b']:.4f}</b>
 </div>""", unsafe_allow_html=True)
     st.markdown(rhtml(rv["r3b"]),unsafe_allow_html=True)
@@ -1195,20 +1726,21 @@ U1x = <b>{rv['U1b']:.4f}</b>  (≥ 1.0)<br><br>
 # ── Tab 5: Sensitivity ──────────────────────────────────────────────────────
 with t5:
     st.markdown("## 📈 Analyse de sensibilité")
-    st.markdown('<div class="ibox">These curves show how the three interaction ratios respond to load changes. The gold dot marks the current design point. Adjust sliders in the sidebar to watch all results update live.</div>',unsafe_allow_html=True)
+    st.markdown('<div class="ibox">Ces courbes montrent comment les trois rapports d\'interaction varient en fonction des charges. Le point doré marque le cas courant. Modifiez les glissières pour observer l\'évolution en temps réel.</div>',unsafe_allow_html=True)
     st.plotly_chart(sensitivity_fig(rv),use_container_width=True,key="sens")
     gov_step=("② Vérif. section" if rv["r2"]>=rv["r3a"] and rv["r2"]>=rv["r3b"]
               else ("③ Pièce sans dévers." if rv["r3a"]>=rv["r3b"] else "④ Pièce avec dévers."))
     st.markdown(f"""<div class="fbox">
 Vérification gouvernante : <b>{gov_step}</b>  =  <b>{rv['gov']:.4f}</b>  —  {'ADÉQUAT ✓' if rv['ok'] else 'INADÉQUAT ✗'}<br>
 Sarcelle = ② Vérif. section  |  Orange = ③ Pièce sans dévers.  |  Violet = ④ Pièce avec dévers.<br>
-Green zone = safe (ratio &lt; 1.0)   |   Red zone = inadequate (ratio &gt; 1.0)
+Zone verte = adéquat (ratio &lt; 1.0)   |   Zone rouge = inadéquat (ratio &gt; 1.0)
 </div>""", unsafe_allow_html=True)
 
-st.markdown("---")
 st.markdown("""
-<div style='background:#FFF8E1;border:1.5px solid #F57F17;border-radius:6px;
-            padding:12px 16px;font-size:.82rem;color:#7B3F00;margin-top:8px'>
+<div style='background:linear-gradient(135deg,#FFF8E1,#FEF3C7);
+            border:1.5px solid #FCD34D;border-radius:12px;
+            padding:14px 20px;font-size:.81rem;color:#78350F;margin-top:16px;
+            box-shadow:0 2px 8px rgba(252,211,77,.2)'>
 <strong>⚠️ EDUCATIONAL USE ONLY — NO LIABILITY.</strong>
 This tool is a teaching aid developed for <strong>GCI 2011 — Conception de Structures I</strong>
 at <strong>Université Laval</strong> under the supervision of
