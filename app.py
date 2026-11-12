@@ -1024,11 +1024,12 @@ def convention_fig():
         traces.append(go.Scatter(x=xs, y=ys, mode="lines",
             line=dict(color=color, width=3.5),
             showlegend=False, hoverinfo="skip"))
-        annotations.append(dict(
-            ax=x_tail, ay=y_tail, axref="x", ayref="y",
-            x=x_tip,   y=y_tip,   xref="x",  yref="y",
-            arrowhead=3, arrowsize=1.4, arrowwidth=3.0, arrowcolor=color,
-            showarrow=True, text=""))
+        # Arrowhead as triangle-right marker at arc endpoint (always visible)
+        traces.append(go.Scatter(
+            x=[float(xs[-1])], y=[float(ys[-1])], mode="markers",
+            marker=dict(symbol="triangle-right", size=15,
+                        color=color, line=dict(color=color, width=1)),
+            showlegend=False, hoverinfo="skip"))
 
         # Title above, rotation label below
         annotations.append(dict(x=cx, y=1.6,
@@ -1097,85 +1098,51 @@ def moment_diag_fig(rv):
 
     def draw_arc(cy, Mval, R, color):
         """
-        Half-circle moment arc ALWAYS on the LEFT side of the neutral axis
-        (completely outside the moment diagram area which is on the right).
-
-        Sign determines rotation direction:
-          Positive (+, CCW):
-            Arc starts at bottom-left (−R, cy), goes LEFT and UP,
-            peaks at (0, cy+R), ends at top-left ... wait:
-            For a CCW (positive) moment viewed from the right:
-              arc goes from (−R, cy) upward → (0, cy+R) → (+R? No — left side)
-            We keep the arc ALWAYS on the left, but the DIRECTION of travel differs:
-              CCW (+): arc travels counter-clockwise → start=bottom, end=top
-                       i.e. from (−R, cy) → bottom-of-arc → up → (−R, cy+?) NO.
-
-        Clearest approach matching textbook convention:
-          The arc is a half-circle on the LEFT of the axis (x < 0).
-          It is centred at (−GAP − R, cy) where GAP separates it from the axis.
-          CCW (+): arc goes from BOTTOM (−GAP−R, cy−R) → LEFT → TOP (−GAP−R, cy+R)
-                   arrowhead at TOP pointing to the RIGHT (→) — tangent direction
-          CW  (−): arc goes from TOP    (−GAP−R, cy+R) → LEFT → BOTTOM (−GAP−R, cy−R)
-                   arrowhead at BOTTOM pointing to the RIGHT (→) — tangent direction
-        Both arrowheads point RIGHT at the end of the arc.
+        Half-circle moment arc, always on the LEFT of the neutral axis.
+        CCW (+): bottom -> left bulge -> top  ; triangle-right marker at TOP
+        CW  (-): top    -> left bulge -> bottom; triangle-right marker at BOTTOM
+        The triangle-right marker IS the arrowhead — always visible, no annotation.
         """
         positive = (Mval >= 0)
-        GAP  = 0.25                  # gap between axis and arc
-        cx   = -(GAP + R)            # arc centre x (always left of axis)
-
-        theta = np.linspace(0, math.pi, 80)
+        GAP = 0.25
+        cx  = -(GAP + R)
 
         if positive:
-            # CCW: travel from (cx−R, cy) [leftmost] → bottom → (cx, cy−R) → right?
-            # Standard CCW half-circle on left side:
-            # parameterise bottom-to-top going left:
-            # angle from −π/2 (bottom) to +π/2 (top), going through −π (leftmost)
-            # i.e. theta: π/2 → 3π/2  but reversed for CCW
-            # Simplest: theta goes from −π/2 to π/2 through −π (the left bulge)
-            t = np.linspace(-math.pi/2, math.pi/2, 80)
-            xs = cx - R * np.abs(np.cos(t)) * np.sign(np.cos(t)) # left bulge
-            # Actually: for a circle centred at cx, cy:
-            # CCW half: start at (cx, cy-R) [bottom], go left to (cx-R, cy),
-            #           then up to (cx, cy+R) [top]
-            # theta from -pi/2 to pi/2 going through pi (left side)
-            t2 = np.linspace(3*math.pi/2, math.pi/2, 80)  # 270°→90° CCW
-            xs = cx + R * np.cos(t2)
-            ys = cy + R * np.sin(t2)
-            # Arc travels: bottom(cx, cy-R) → left(cx-R,cy) → top(cx,cy+R)
-            # Arrowhead at TOP = (cx, cy+R), tangent direction = RIGHT (+x)
-            x_tip,  y_tip  = cx,       cy + R
-            x_tail, y_tail = cx - R*0.3, cy + R
+            t  = np.linspace(3*math.pi/2, math.pi/2, 80)  # 270->90 CCW
         else:
-            # CW: start at (cx, cy+R) [top], go left to (cx-R,cy), down to (cx,cy-R)
-            t2 = np.linspace(math.pi/2, -math.pi/2, 80)   # 90°→-90° CW
-            xs = cx + R * np.cos(t2)
-            ys = cy + R * np.sin(t2)
-            # Arc travels: top(cx,cy+R) → left(cx-R,cy) → bottom(cx,cy-R)
-            # Arrowhead at BOTTOM = (cx, cy-R), tangent direction = RIGHT (+x)
-            x_tip,  y_tip  = cx,       cy - R
-            x_tail, y_tail = cx - R*0.3, cy - R
+            t  = np.linspace(math.pi/2, -math.pi/2, 80)   # 90->-90 CW
 
-        traces.append(go.Scatter(x=xs, y=ys, mode="lines",
+        xs = cx + R * np.cos(t)
+        ys = cy + R * np.sin(t)
+        arr_x = float(xs[-1])
+        arr_y = float(ys[-1])
+
+        # Arc line
+        traces.append(go.Scatter(
+            x=xs, y=ys, mode="lines",
             line=dict(color=color, width=3.5),
             showlegend=False, hoverinfo="skip"))
 
-        # Arrowhead: tail is to the LEFT of tip, tip points RIGHT
-        annotations.append(dict(
-            ax=x_tail, ay=y_tail, axref="x", ayref="y",
-            x=x_tip,   y=y_tip,   xref="x",  yref="y",
-            arrowhead=3, arrowsize=1.3, arrowwidth=3.0, arrowcolor=color,
-            showarrow=True, text=""))
+        # Arrowhead: filled triangle pointing RIGHT at arc endpoint
+        # triangle-right always points in +x direction = tangent at top/bottom of arc
+        traces.append(go.Scatter(
+            x=[arr_x], y=[arr_y], mode="markers",
+            marker=dict(symbol="triangle-right", size=15,
+                        color=color, line=dict(color=color, width=1)),
+            showlegend=False, hoverinfo="skip"))
 
-        # Labels to the left of the arc
-        sign_s = "+" if positive else "\u2212"
-        rot_s  = "\u21ba CCW (+)" if positive else "\u21bb CW (\u2212)"
-        lx = cx - R - 0.3
-        annotations.append(dict(x=lx, y=cy + R*0.4,
-            text=f"<b>{sign_s}{abs(Mval):.0f} kN\u00b7m</b>",
-            xanchor="right", yanchor="middle", showarrow=False,
+        # Labels right of the endpoint
+        sign_s = "+" if positive else "−"
+        rot_s  = "↺ CCW (+)" if positive else "↻ CW (−)"
+        lx = arr_x + 0.25
+        annotations.append(dict(
+            x=lx, y=cy + R*0.45,
+            text=f"<b>{sign_s}{abs(Mval):.0f} kN·m</b>",
+            xanchor="left", yanchor="middle", showarrow=False,
             font=dict(size=11, color=color)))
-        annotations.append(dict(x=lx, y=cy - R*0.1,
-            text=rot_s, xanchor="right", yanchor="middle", showarrow=False,
+        annotations.append(dict(
+            x=lx, y=cy - R*0.05,
+            text=rot_s, xanchor="left", yanchor="middle", showarrow=False,
             font=dict(size=9, color=color)))
 
     if abs(Mf2x) > 0:
@@ -1565,10 +1532,63 @@ Mf1 = moment à l'autre extrémité (même sens → négatif → double courbure
     Mfx_kNm = Mf2x
     Mfy_kNm = Mf2y
 
-    omega2 = st.slider("ω₂  (gradient LTB, axe fort)", 0.6, 2.5, 1.0, 0.05,
-        help="Facteur de gradient de moment pour le déversement [HSC 13.6]\n"
-             "1.0 = moment uniforme (conservateur)\n"
-             "1.75 + 1.05κ + 0.3κ² ≤ 2.5 (calculé manuellement)")
+    # ── ω₂ — computed automatically from Mf1/Mf2 and load type [HSC 13.6] ──────
+    st.markdown("### ω₂ — Gradient de moment  [HSC 13.6]")
+    transverse_load = st.radio(
+        "Charge transversale entre appuis ?",
+        ["Non — moments d'extrémités seulement (a)",
+         "Oui — charge distribuée (b)",
+         "Oui — charges/moments concentrés (c)"],
+        index=0,
+        help="(a) ω₂ = 1.75 + 1.05κ + 0.3κ² ≤ 2.5\n"
+             "(b) ω₂ = 4Mmax / √(Mmax² + 4Ma² + 7Mb² + 4Mc²) ≤ 2.5\n"
+             "(c) ω₂ = 0.85")
+
+    if transverse_load.startswith("Non"):
+        # Case (a): no transverse load — compute from κ = Mf1/Mf2
+        om2_raw = 1.75 + 1.05*k_ratio + 0.3*k_ratio**2
+        omega2  = min(om2_raw, 2.5)
+        # Special case: if Mmax > Mf2 (moment reversal along member), ω₂ = 1
+        # (conservative, user can override)
+        st.markdown(
+            f'<div class="ibox">'
+            f'<b>[HSC 13.6 — cas (a)]</b>  Pas de charge latérale entre appuis<br>'
+            f'ω₂ = 1.75 + 1.05×{k_ratio:.3f} + 0.3×{k_ratio:.3f}² = {om2_raw:.3f} → '
+            f'<b>ω₂ = {omega2:.3f}</b>  (≤ 2.5)<br>'
+            f'<i>κ = Mf1/Mf2 = {k_ratio:.3f}  '
+            f'({"double courbure ✓" if k_ratio>0 else "courbure simple"})</i>'
+            f'</div>',
+            unsafe_allow_html=True)
+
+    elif "distribuée" in transverse_load:
+        # Case (b): distributed transverse load
+        # Need Mmax, Ma, Mb, Mc (quarter-point moments)
+        # Scale defaults to Mf2 magnitude
+        m_ref = max(abs(Mf2x), 10.0)
+        st.markdown('<div class="ibox"><b>[HSC 13.6 — cas (b)]</b>  '
+            'ω₂ = 4Mmax / √(Mmax² + 4Ma² + 7Mb² + 4Mc²) ≤ 2.5<br>'
+            'Entrez les moments aux points caractéristiques (valeurs absolues, kN·m) :</div>',
+            unsafe_allow_html=True)
+        col_a, col_b = st.columns(2)
+        with col_a:
+            Mmax_in = st.number_input("Mmax (moment max absolu)", 1.0, 9999.0, float(m_ref), 10.0, key="Mmax")
+            Ma_in   = st.number_input("Ma  (quart de portée)",    0.0, 9999.0, float(m_ref*0.75), 10.0, key="Ma")
+        with col_b:
+            Mb_in   = st.number_input("Mb  (mi-portée)",          0.0, 9999.0, float(m_ref*1.0),  10.0, key="Mb")
+            Mc_in   = st.number_input("Mc  (trois-quarts)",       0.0, 9999.0, float(m_ref*0.75), 10.0, key="Mc")
+        denom = math.sqrt(Mmax_in**2 + 4*Ma_in**2 + 7*Mb_in**2 + 4*Mc_in**2)
+        omega2 = min(4*Mmax_in / denom, 2.5) if denom > 0 else 1.0
+        st.markdown(
+            f'<div class="ibox">ω₂ = 4×{Mmax_in:.0f} / √({Mmax_in:.0f}² + 4×{Ma_in:.0f}² + 7×{Mb_in:.0f}² + 4×{Mc_in:.0f}²) = <b>{omega2:.3f}</b></div>',
+            unsafe_allow_html=True)
+
+    else:
+        # Case (c): concentrated loads or moments between supports
+        omega2 = 0.85
+        st.markdown(
+            '<div class="ibox"><b>[HSC 13.6 — cas (c)]</b>  '
+            'Charges ou moments concentrés entre appuis → <b>ω₂ = 0.85</b> (conservateur)</div>',
+            unsafe_allow_html=True)
 
     st.markdown("### Contreventement et U2  [HSC 13.8.4]")
     braced_choice = st.radio("Type de structure",
@@ -1619,10 +1639,17 @@ rv = compute(sn, Cf_kN, Mfx_kNm, Mfy_kNm, L_mm,
              om2=omega2, braced=braced, U2=U2_val,
              sec_type=sec_type)
 # Store Mf1 values for member diagram
-rv["Mf1x"] = Mf1x * 1e6   # N·mm
+rv["Mf1x"] = Mf1x * 1e6
 rv["Mf1y"] = Mf1y * 1e6
 rv["Mf2x"] = Mf2x * 1e6
 rv["Mf2y"] = Mf2y * 1e6
+# Store which omega2 case was used for display in formula boxes
+if transverse_load.startswith("Non"):
+    rv["om2_case"] = f"cas (a) : 1.75 + 1.05×{k_ratio:.3f} + 0.3×{k_ratio:.3f}² = {omega2:.3f}"
+elif "distribuée" in transverse_load:
+    rv["om2_case"] = f"cas (b) : 4Mmax/√(...) = {omega2:.3f}"
+else:
+    rv["om2_case"] = f"cas (c) : ω₂ = 0.85 (conservateur)"
 
 # ═══════════════════════════════════════════════════════════════════════════════
 #  HEADER  &  KPI STRIP
@@ -1856,7 +1883,8 @@ with t4:
     st.markdown(f"""<div class="fbox">
 <b>Équation d'interaction  [HSC 13.8.4] :</b>  Cf/Cr(λ̄y)  +  0.85·U1x·Mfx/Mrx*  +  β·U1y·Mfy/Mry  ≤ 1.0<br><br>
 <b>Cr axe faible  [HSC 13.3.1] :</b>  KLy/ry = {rv['KLy_ry']:.1f}  →  λ̄y = <b>{rv['ly']:.4f}</b>  →  Cry = <b>{rv['Cry']/1e3:.1f} kN</b>  (Cr/A = {rv['CrA_y']:.1f} MPa)  [Table T2]<br><br>
-<b>Résistance en flexion  [HSC 13.6] :</b>  Lb = {rv['L']:.0f} mm  |  Lu = {rv['Lu']:,} mm  |  ω₂ = {rv['om2']}<br>
+<b>Résistance en flexion  [HSC 13.6] :</b>  Lb = {rv['L']:.0f} mm  |  Lu = {rv['Lu']:,} mm<br>
+ω₂ = {rv['om2']:.3f}  ({rv.get('om2_case','calculé')})<br>
 {'Mrx* = Mp = <b>'+f"{rv['Mrx_b']/1e6:.1f}"+'</b> kN·m  (Lb ≤ Lu — pas de déversement)' if rv['ltb_ok'] else f"Mu = ω₂·(π/Lb)·√(E·Iy·G·J + (π·E/Lb)²·Iy·Cw) = <b>{rv['Mu_eff']/1e6:.1f} kN·m</b>  →  Mrx* = <b>{rv['Mrx_b']/1e6:.1f} kN·m</b>"}<br><br>
 <b>U1  [HSC 13.8.4] — conditions : U1x ≥ 1.0,  U1y ≥ 0 :</b><br>
 <i>U1x ≥ 1.0 (pas ≥ 0) : ω₂ est déjà inclus dans Mu pour le déversement — utiliser U1x &lt; 1 cumuleraient l'effet du gradient deux fois.</i><br>
