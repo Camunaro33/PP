@@ -994,53 +994,51 @@ def convention_fig():
     R = 1.0
     shapes, annotations, traces = [], [], []
 
-    for cx, Mpos, color, sign, rot_lbl, side_lbl in [
-        (-2.8, True,  POS_C, "+", "↺ sens anti-horaire", "arc côté droit"),
-        ( 2.8, False, NEG_C, "−", "↻ sens horaire",       "arc côté gauche"),
+    for cx, Mpos, color, sign, rot_lbl in [
+        (-2.5, True,  POS_C, "+ M", "↺ sens anti-horaire (CCW)"),
+        ( 2.5, False, NEG_C, "− M", "↻ sens horaire (CW)"),
     ]:
-        # Small column stub
+        # Small I-beam stub (vertical rectangle)
         shapes.append(dict(type="rect",
-            x0=cx-0.18, y0=-0.5, x1=cx+0.18, y1=0.5,
+            x0=cx-0.18, y0=-0.55, x1=cx+0.18, y1=0.55,
             fillcolor="rgba(46,109,164,0.25)",
             line=dict(color="#1A3A5C", width=1.5)))
 
-        # Half-circle arc
-        theta = np.linspace(0, math.pi, 80)
+        # Arc centred at (cx, 0), always on the LEFT side of the stub
+        arc_cx = cx - R - 0.25   # arc centre offset to the left
         if Mpos:
-            xs = cx + R * np.cos(theta)      # right side
-            ys =      R * np.sin(theta)
-            x_tip, y_tip   = cx - R, 0.0
-            x_tail, y_tail = cx - R, R * 0.3
+            # CCW: bottom → left-bulge → top, arrowhead at top pointing RIGHT
+            t = np.linspace(3*math.pi/2, math.pi/2, 80)
+            xs = arc_cx + R * np.cos(t)
+            ys =          R * np.sin(t)
+            x_tip,  y_tip  = arc_cx,          R
+            x_tail, y_tail = arc_cx - R*0.3,  R
         else:
-            xs = cx - R * np.cos(theta)      # left side
-            ys =      R * np.sin(theta)
-            x_tip, y_tip   = cx + R, 0.0
-            x_tail, y_tail = cx + R, R * 0.3
+            # CW: top → left-bulge → bottom, arrowhead at bottom pointing RIGHT
+            t = np.linspace(math.pi/2, -math.pi/2, 80)
+            xs = arc_cx + R * np.cos(t)
+            ys =          R * np.sin(t)
+            x_tip,  y_tip  = arc_cx,          -R
+            x_tail, y_tail = arc_cx - R*0.3,  -R
 
         traces.append(go.Scatter(x=xs, y=ys, mode="lines",
             line=dict(color=color, width=3.5),
             showlegend=False, hoverinfo="skip"))
-
-        # Arrowhead at arc end
         annotations.append(dict(
             ax=x_tail, ay=y_tail, axref="x", ayref="y",
             x=x_tip,   y=y_tip,   xref="x",  yref="y",
             arrowhead=3, arrowsize=1.4, arrowwidth=3.0, arrowcolor=color,
             showarrow=True, text=""))
 
-        # Labels
-        lx    = cx + R + 0.2 if Mpos else cx - R - 0.2
-        anc   = "left" if Mpos else "right"
-        annotations += [
-            dict(x=cx, y=1.55,
-                 text=f"<b style='font-size:16px;color:{color}'>{sign} M</b>",
-                 xanchor="center", yanchor="bottom", showarrow=False,
-                 font=dict(size=14, color=color)),
-            dict(x=cx, y=-0.9,
-                 text=f"<b>{rot_lbl}</b><br>{side_lbl}",
-                 xanchor="center", yanchor="top", showarrow=False,
-                 font=dict(size=9, color=color)),
-        ]
+        # Title above, rotation label below
+        annotations.append(dict(x=cx, y=1.6,
+            text=f"<b>{sign}</b>",
+            xanchor="center", yanchor="bottom", showarrow=False,
+            font=dict(size=15, color=color)))
+        annotations.append(dict(x=cx, y=-0.9,
+            text=f"<b>{rot_lbl}</b>",
+            xanchor="center", yanchor="top", showarrow=False,
+            font=dict(size=9, color=color)))
 
     # Central divider
     shapes.append(dict(type="line", x0=0, y0=-1.4, x1=0, y1=1.8,
@@ -1053,13 +1051,13 @@ def convention_fig():
         font=dict(size=11, color="#1E293B")))
 
     fig = go.Figure(data=traces)
-    fig.add_trace(go.Scatter(x=[-5, 5], y=[-1.6, 2.4],
+    fig.add_trace(go.Scatter(x=[-6.5, 5.5], y=[-1.5, 2.3],
         mode="markers", marker=dict(opacity=0, size=1)))
     fig.update_layout(
         shapes=shapes, annotations=annotations,
         xaxis=dict(visible=False, scaleanchor="y", scaleratio=1),
         yaxis=dict(visible=False),
-        height=180,
+        height=190,
         margin=dict(l=5, r=5, t=5, b=5),
         paper_bgcolor="#F0F7FF",
         plot_bgcolor="#F0F7FF",
@@ -1098,40 +1096,86 @@ def moment_diag_fig(rv):
     shapes, annotations, traces = [], [], []
 
     def draw_arc(cy, Mval, R, color):
-        """Half-circle moment arc centred at (0, cy).
-        positive (+, CCW): arc on RIGHT, arrowhead points DOWN at left end
-        negative (-, CW):  arc on LEFT,  arrowhead points DOWN at right end
+        """
+        Half-circle moment arc ALWAYS on the LEFT side of the neutral axis
+        (completely outside the moment diagram area which is on the right).
+
+        Sign determines rotation direction:
+          Positive (+, CCW):
+            Arc starts at bottom-left (−R, cy), goes LEFT and UP,
+            peaks at (0, cy+R), ends at top-left ... wait:
+            For a CCW (positive) moment viewed from the right:
+              arc goes from (−R, cy) upward → (0, cy+R) → (+R? No — left side)
+            We keep the arc ALWAYS on the left, but the DIRECTION of travel differs:
+              CCW (+): arc travels counter-clockwise → start=bottom, end=top
+                       i.e. from (−R, cy) → bottom-of-arc → up → (−R, cy+?) NO.
+
+        Clearest approach matching textbook convention:
+          The arc is a half-circle on the LEFT of the axis (x < 0).
+          It is centred at (−GAP − R, cy) where GAP separates it from the axis.
+          CCW (+): arc goes from BOTTOM (−GAP−R, cy−R) → LEFT → TOP (−GAP−R, cy+R)
+                   arrowhead at TOP pointing to the RIGHT (→) — tangent direction
+          CW  (−): arc goes from TOP    (−GAP−R, cy+R) → LEFT → BOTTOM (−GAP−R, cy−R)
+                   arrowhead at BOTTOM pointing to the RIGHT (→) — tangent direction
+        Both arrowheads point RIGHT at the end of the arc.
         """
         positive = (Mval >= 0)
+        GAP  = 0.25                  # gap between axis and arc
+        cx   = -(GAP + R)            # arc centre x (always left of axis)
+
         theta = np.linspace(0, math.pi, 80)
+
         if positive:
-            xs = R * np.cos(theta)          # +R -> 0 -> -R  (right side)
-            ys = cy + R * np.sin(theta)
-            x_tip, y_tip   = -R, cy         # end of arc = left point
-            x_tail, y_tail = -R, cy + R*0.3 # tail above tip
+            # CCW: travel from (cx−R, cy) [leftmost] → bottom → (cx, cy−R) → right?
+            # Standard CCW half-circle on left side:
+            # parameterise bottom-to-top going left:
+            # angle from −π/2 (bottom) to +π/2 (top), going through −π (leftmost)
+            # i.e. theta: π/2 → 3π/2  but reversed for CCW
+            # Simplest: theta goes from −π/2 to π/2 through −π (the left bulge)
+            t = np.linspace(-math.pi/2, math.pi/2, 80)
+            xs = cx - R * np.abs(np.cos(t)) * np.sign(np.cos(t)) # left bulge
+            # Actually: for a circle centred at cx, cy:
+            # CCW half: start at (cx, cy-R) [bottom], go left to (cx-R, cy),
+            #           then up to (cx, cy+R) [top]
+            # theta from -pi/2 to pi/2 going through pi (left side)
+            t2 = np.linspace(3*math.pi/2, math.pi/2, 80)  # 270°→90° CCW
+            xs = cx + R * np.cos(t2)
+            ys = cy + R * np.sin(t2)
+            # Arc travels: bottom(cx, cy-R) → left(cx-R,cy) → top(cx,cy+R)
+            # Arrowhead at TOP = (cx, cy+R), tangent direction = RIGHT (+x)
+            x_tip,  y_tip  = cx,       cy + R
+            x_tail, y_tail = cx - R*0.3, cy + R
         else:
-            xs = -R * np.cos(theta)         # -R -> 0 -> +R  (left side)
-            ys = cy + R * np.sin(theta)
-            x_tip, y_tip   =  R, cy         # end of arc = right point
-            x_tail, y_tail =  R, cy + R*0.3
+            # CW: start at (cx, cy+R) [top], go left to (cx-R,cy), down to (cx,cy-R)
+            t2 = np.linspace(math.pi/2, -math.pi/2, 80)   # 90°→-90° CW
+            xs = cx + R * np.cos(t2)
+            ys = cy + R * np.sin(t2)
+            # Arc travels: top(cx,cy+R) → left(cx-R,cy) → bottom(cx,cy-R)
+            # Arrowhead at BOTTOM = (cx, cy-R), tangent direction = RIGHT (+x)
+            x_tip,  y_tip  = cx,       cy - R
+            x_tail, y_tail = cx - R*0.3, cy - R
+
         traces.append(go.Scatter(x=xs, y=ys, mode="lines",
             line=dict(color=color, width=3.5),
             showlegend=False, hoverinfo="skip"))
+
+        # Arrowhead: tail is to the LEFT of tip, tip points RIGHT
         annotations.append(dict(
             ax=x_tail, ay=y_tail, axref="x", ayref="y",
             x=x_tip,   y=y_tip,   xref="x",  yref="y",
-            arrowhead=3, arrowsize=1.3, arrowwidth=2.8, arrowcolor=color,
+            arrowhead=3, arrowsize=1.3, arrowwidth=3.0, arrowcolor=color,
             showarrow=True, text=""))
+
+        # Labels to the left of the arc
         sign_s = "+" if positive else "\u2212"
         rot_s  = "\u21ba CCW (+)" if positive else "\u21bb CW (\u2212)"
-        lx = R + 0.25 if positive else -R - 0.25
-        la = "left" if positive else "right"
-        annotations.append(dict(x=lx, y=cy + R*0.6,
+        lx = cx - R - 0.3
+        annotations.append(dict(x=lx, y=cy + R*0.4,
             text=f"<b>{sign_s}{abs(Mval):.0f} kN\u00b7m</b>",
-            xanchor=la, yanchor="middle", showarrow=False,
+            xanchor="right", yanchor="middle", showarrow=False,
             font=dict(size=11, color=color)))
-        annotations.append(dict(x=lx, y=cy + R*0.1,
-            text=rot_s, xanchor=la, yanchor="middle", showarrow=False,
+        annotations.append(dict(x=lx, y=cy - R*0.1,
+            text=rot_s, xanchor="right", yanchor="middle", showarrow=False,
             font=dict(size=9, color=color)))
 
     if abs(Mf2x) > 0:
@@ -1195,11 +1239,13 @@ def moment_diag_fig(rv):
         xanchor="center", yanchor="top", showarrow=False,
         font=dict(size=8, color="#555")))
 
-    R_max = min(H * 0.20, 1.4)
-    pad_x = SC + R_max + 1.8
-    pad_y = R_max + H * 0.18
+    R_max  = min(H * 0.20, 1.4)
+    GAP    = 0.25
+    pad_xL = GAP + R_max + R_max + 2.5   # left: gap + arc diameter + labels
+    pad_xR = SC + 2.5                     # right: diagram + kappa box
+    pad_y  = R_max + H * 0.18
     fig = go.Figure(data=traces)
-    fig.add_trace(go.Scatter(x=[-pad_x,pad_x], y=[-pad_y,H+pad_y],
+    fig.add_trace(go.Scatter(x=[-pad_xL, pad_xR], y=[-pad_y,H+pad_y],
         mode="markers", marker=dict(opacity=0,size=1)))
     fig.update_layout(shapes=shapes, annotations=annotations,
         xaxis=dict(visible=False,scaleanchor="y",scaleratio=1),
